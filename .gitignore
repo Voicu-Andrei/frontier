@@ -1,0 +1,23 @@
+# Node
+node_modules/
+web/dist/
+*.local
+.vite/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+pipeline/.cache/
+pipeline/data/*.osm.pbf
+pipeline/data/*.osm
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Large raw extracts (keep the small committed sample under web/public/data)
+*.osm.pbf

@@ -1,0 +1,159 @@
+/* Design tokens. Reskinning the whole app = swapping one [data-theme] block.
+   Adapted from the RouteLab Claude Design handoff (paper / carbon / blueprint). */
+
+/* ---- BASE TOKENS (theme-independent) ---- */
+[data-theme] {
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+  --fs-micro: 11px;
+  --fs-cap: 12px;
+  --fs-sm: 13px;
+  --fs-base: 14px;
+  --fs-md: 18px;
+  --fs-lg: 23px;
+  --fs-xl: 30px;
+  --ls-cap: 0.09em;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+  --r-1: 5px;
+  --r-2: 9px;
+  --r-3: 14px;
+  --r-pill: 999px;
+  --t-fast: 130ms;
+  --t-base: 240ms;
+  --t-slow: 460ms;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --blur: 16px;
+}
+
+/* ---- THEME: PAPER (light baseline) ---- */
+[data-theme="paper"] {
+  --bg: #e7e4dd;
+  --map-land: #f3f1ec;
+  --map-land-2: #ece9e2;
+  --map-water: #c6dcef;
+  --map-park: #d7e7cd;
+  --map-road-casing: #e3e0d7;
+  --map-road: #ffffff;
+  --map-road-minor: #f7f5ef;
+  --map-label: #9a958a;
+  --ink: #1b1d22;
+  --ink-muted: #5a6069;
+  --ink-faint: #9aa0aa;
+  --panel: rgba(255, 255, 255, 0.82);
+  --panel-solid: #fbfaf7;
+  --hairline: rgba(20, 22, 28, 0.1);
+  --scrim: rgba(255, 255, 255, 0.7);
+  --route-a: #1a73e8;
+  --route-b: #00c2d6;
+  --route-casing: #ffffff;
+  --frontier-settle: rgba(123, 58, 237, 0.3);
+  --frontier-wave-1: rgba(214, 64, 159, 0.92);
+  --frontier-wave-2: rgba(245, 135, 12, 1);
+  --start: #16a34a;
+  --end: #ea4335;
+  --accent: #1a73e8;
+  --accent-ink: #ffffff;
+  --ok: #16a34a;
+  --warn: #e8810c;
+  --danger: #ea4335;
+  --algo-a: #1a73e8;
+  --algo-b: #9333ea;
+  --e-1: 0 1px 2px rgba(16, 18, 24, 0.1), 0 1px 1px rgba(16, 18, 24, 0.04);
+  --e-2: 0 6px 22px rgba(16, 18, 24, 0.13), 0 1px 3px rgba(16, 18, 24, 0.07);
+  --e-3: 0 18px 54px rgba(16, 18, 24, 0.2);
+}
+
+/* ---- THEME: CARBON (dark) ---- */
+[data-theme="carbon"] {
+  --bg: #05070b;
+  --map-land: #0e131a;
+  --map-land-2: #11171f;
+  --map-water: #0b2233;
+  --map-park: #11251a;
+  --map-road-casing: #1a212c;
+  --map-road: #2c3744;
+  --map-road-minor: #1c242f;
+  --map-label: #586474;
+  --ink: #eef2f7;
+  --ink-muted: #98a4b4;
+  --ink-faint: #5c6677;
+  --panel: rgba(15, 19, 27, 0.74);
+  --panel-solid: #10151d;
+  --hairline: rgba(255, 255, 255, 0.1);
+  --scrim: rgba(7, 9, 13, 0.62);
+  --route-a: #2b8bff;
+  --route-b: #1ff0d6;
+  --route-casing: #05070b;
+  --frontier-settle: rgba(124, 92, 255, 0.2);
+  --frontier-wave-1: rgba(236, 72, 153, 0.92);
+  --frontier-wave-2: rgba(250, 204, 21, 1);
+  --start: #22c55e;
+  --end: #fb5246;
+  --accent: #2b8bff;
+  --accent-ink: #061018;
+  --ok: #22c55e;
+  --warn: #f59e0b;
+  --danger: #fb5246;
+  --algo-a: #2b8bff;
+  --algo-b: #a78bfa;
+  --e-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --e-2: 0 8px 30px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --e-3: 0 22px 64px rgba(0, 0, 0, 0.62);
+}
+
+/* ---- THEME: BLUEPRINT (vibrant alt) ---- */
+[data-theme="blueprint"] {
+  --bg: #070c18;
+  --map-land: #0f1830;
+  --map-land-2: #13203c;
+  --map-water: #0b1730;
+  --map-park: #10283a;
+  --map-road-casing: #1b2c4c;
+  --map-road: #33518a;
+  --map-road-minor: #21345b;
+  --map-label: #5e6f99;
+  --ink: #eaf0ff;
+  --ink-muted: #9fb0d4;
+  --ink-faint: #5e6e96;
+  --panel: rgba(15, 24, 48, 0.74);
+  --panel-solid: #0f1830;
+  --hairline: rgba(120, 160, 255, 0.16);
+  --scrim: rgba(7, 12, 24, 0.62);
+  --route-a: #22d3ee;
+  --route-b: #38bdf8;
+  --route-casing: #070c18;
+  --frontier-settle: rgba(56, 189, 248, 0.16);
+  --frontier-wave-1: rgba(244, 114, 182, 0.92);
+  --frontier-wave-2: rgba(250, 204, 21, 1);
+  --start: #34d399;
+  --end: #fb7185;
+  --accent: #22d3ee;
+  --accent-ink: #06121f;
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --danger: #fb7185;
+  --algo-a: #22d3ee;
+  --algo-b: #f472b6;
+  --e-1: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --e-2: 0 8px 30px rgba(2, 8, 23, 0.55), 0 1px 3px rgba(2, 8, 23, 0.4);
+  --e-3: 0 22px 64px rgba(2, 8, 23, 0.62);
+}
+
+@keyframes rlpulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.65;
+  }
+  80%,
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}

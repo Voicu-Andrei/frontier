@@ -1,0 +1,6 @@
+# RouteLab offline pipeline (real OSM path).
+# The synthetic generator (generate_synthetic.py) needs NONE of these — stdlib only.
+# These are only for parsing a real OSM extract into the same graph format.
+pyrosm>=0.6.2        # fast .osm.pbf parsing (Munich/Oberbayern extracts)
+shapely>=2.0         # geometry ops (lengths, polygon simplification)
+numpy>=1.24

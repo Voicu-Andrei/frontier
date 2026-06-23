@@ -1,0 +1,127 @@
+import type { Graph, RawGraph, ProjectedFeatures } from "./types";
+
+const M_PER_DEG_LAT = 111_320.0;
+
+/**
+ * Build the in-memory CSR graph from a parsed `.graph.json`. Projects all
+ * coordinates to a local equirectangular metre grid centred on the dataset
+ * (good to <0.1% at city scale, and a valid lower bound for the A* heuristic).
+ */
+export function buildGraph(raw: RawGraph): Graph {
+  const nodeCount = raw.nodes.lon.length;
+  const edgeCount = raw.edges.from.length;
+
+  const lon = Float64Array.from(raw.nodes.lon);
+  const lat = Float64Array.from(raw.nodes.lat);
+
+  const [lon0, lat0] = raw.meta.center;
+  const mPerDegLon = M_PER_DEG_LAT * Math.cos((lat0 * Math.PI) / 180);
+  const project = (lo: number, la: number): [number, number] => [
+    (lo - lon0) * mPerDegLon,
+    (la - lat0) * M_PER_DEG_LAT,
+  ];
+
+  const mx = new Float64Array(nodeCount);
+  const my = new Float64Array(nodeCount);
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
+  for (let i = 0; i < nodeCount; i++) {
+    const [x, y] = project(lon[i], lat[i]);
+    mx[i] = x;
+    my[i] = y;
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (x > maxX) maxX = x;
+    if (y > maxY) maxY = y;
+  }
+
+  // --- Build CSR by counting out-degree, then a prefix sum, then a fill pass.
+  const from = raw.edges.from;
+  const rawTo = raw.edges.to;
+  const head = new Int32Array(nodeCount + 1);
+  for (let e = 0; e < edgeCount; e++) head[from[e] + 1]++;
+  for (let v = 0; v < nodeCount; v++) head[v + 1] += head[v];
+
+  const to = new Int32Array(edgeCount);
+  const len_m = new Float64Array(edgeCount);
+  const time_s = new Float64Array(edgeCount);
+  const klass = new Uint8Array(edgeCount);
+  const geom: (Float64Array | null)[] = new Array(edgeCount).fill(null);
+  const rawGeom = raw.edges.geom;
+
+  const cursor = Int32Array.from(head.subarray(0, nodeCount));
+  for (let e = 0; e < edgeCount; e++) {
+    const slot = cursor[from[e]]++;
+    to[slot] = rawTo[e];
+    len_m[slot] = raw.edges.len_m[e];
+    time_s[slot] = raw.edges.time_s[e];
+    klass[slot] = raw.edges.klass[e] as number;
+    if (rawGeom && rawGeom[e]) {
+      const pts = rawGeom[e];
+      const flat = new Float64Array(pts.length * 2);
+      for (let k = 0; k < pts.length; k++) {
+        const [x, y] = project(pts[k][0], pts[k][1]);
+        flat[2 * k] = x;
+        flat[2 * k + 1] = y;
+      }
+      geom[slot] = flat;
+    }
+  }
+
+  const features = projectFeatures(raw, project);
+
+  return {
+    nodeCount,
+    edgeCount,
+    lon,
+    lat,
+    mx,
+    my,
+    head,
+    to,
+    len_m,
+    time_s,
+    klass,
+    geom,
+    meta: raw.meta,
+    features,
+    proj: { lon0, lat0, mPerDegLon, mPerDegLat: M_PER_DEG_LAT },
+    bounds: { minX, minY, maxX, maxY },
+  };
+}
+
+function projectFeatures(
+  raw: RawGraph,
+  project: (lo: number, la: number) => [number, number],
+): ProjectedFeatures {
+  const ring = (pts: [number, number][]): Float64Array => {
+    const f = new Float64Array(pts.length * 2);
+    for (let i = 0; i < pts.length; i++) {
+      const [x, y] = project(pts[i][0], pts[i][1]);
+      f[2 * i] = x;
+      f[2 * i + 1] = y;
+    }
+    return f;
+  };
+  const feat = raw.features ?? {};
+  return {
+    water: (feat.water ?? []).map(ring),
+    parks: (feat.parks ?? []).map(ring),
+    rivers: (feat.rivers ?? []).map((r) => ({ pts: ring(r.pts), width_m: r.width_m })),
+  };
+}
+
+/** Pick the weight array for a search. */
+export function weightArray(g: Graph, weight: "time" | "distance"): Float64Array {
+  return weight === "time" ? g.time_s : g.len_m;
+}
+
+/** Fetch a graph file and build it. */
+export async function loadGraph(url: string): Promise<Graph> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`failed to load graph: ${url} (${res.status})`);
+  const raw = (await res.json()) as RawGraph;
+  return buildGraph(raw);
+}
