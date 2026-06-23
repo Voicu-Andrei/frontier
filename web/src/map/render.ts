@@ -147,52 +147,56 @@ function drawFrontier(
 }
 
 function drawIso(ctx: CanvasRenderingContext2D, g: Graph, palette: Palette, vp: Viewport, iso: Scene["iso"] & object, progress: number): void {
-  // STATIC nested time-contours (outer -> inner). They do NOT scale with the
-  // scrubber — each is the real reachable boundary for a fixed minute budget.
-  const bandColors = [palette.frontierSettle, palette.frontierWave1, palette.frontierWave2];
-  const bandAlpha = [0.16, 0.18, 0.24];
-  iso.contours.forEach((c, i) => {
-    const color = bandColors[Math.min(i, 2)];
-    ctx.beginPath();
-    for (let k = 0; k < c.hull.length; k += 2) {
-      const sx = vp.toScreenX(c.hull[k]);
-      const sy = vp.toScreenY(c.hull[k + 1]);
-      if (k === 0) ctx.moveTo(sx, sy);
-      else ctx.lineTo(sx, sy);
-    }
-    ctx.closePath();
-    ctx.globalAlpha = bandAlpha[Math.min(i, 2)];
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.globalAlpha = 0.85;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.6;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  });
-
-  // The reachable road network, highlighted. The scrubber floods it in by REAL
-  // arrival time (a genuine wavefront), not by scaling a blob.
-  const thr = progress * iso.budget;
+  const thr = progress * iso.budget; // scrubbing floods by real arrival time
   const { dist } = iso.result;
   const { head, to, geom, mx, my } = g;
-  ctx.strokeStyle = palette.frontierWave1;
-  ctx.lineWidth = 1.2;
-  for (let u = 0; u < g.nodeCount; u++) {
-    if (dist[u] > thr) continue;
-    for (let e = head[u]; e < head[u + 1]; e++) {
-      const v = to[e];
-      if (v < u || dist[v] > thr) continue;
-      const gm = geom[e];
-      ctx.beginPath();
-      if (gm) {
-        ctx.moveTo(vp.toScreenX(gm[0]), vp.toScreenY(gm[1]));
-        for (let i = 2; i < gm.length; i += 2) ctx.lineTo(vp.toScreenX(gm[i]), vp.toScreenY(gm[i + 1]));
-      } else {
-        ctx.moveTo(vp.toScreenX(mx[u]), vp.toScreenY(my[u]));
-        ctx.lineTo(vp.toScreenX(mx[v]), vp.toScreenY(my[v]));
+
+  // Concave reachable area — a faint fill + boundary that hugs the road network
+  // (carves out water / fields instead of ballooning across them).
+  if (iso.hullRings.length) {
+    ctx.beginPath();
+    for (const ring of iso.hullRings) {
+      ctx.moveTo(vp.toScreenX(ring[0]), vp.toScreenY(ring[1]));
+      for (let i = 2; i < ring.length; i += 2) ctx.lineTo(vp.toScreenX(ring[i]), vp.toScreenY(ring[i + 1]));
+      ctx.closePath();
+    }
+    ctx.globalAlpha = 0.1;
+    ctx.fillStyle = palette.frontierWave1;
+    ctx.fill("evenodd");
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = palette.frontierWave1;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Reachable streets coloured by arrival-time band. This is the honest
+  // isochrone: motorways stay lit far out, slow streets drop off sooner — proof
+  // the search respects road speeds. Draw slowest band first so faster sits on top.
+  const bandColor = [palette.frontierWave2, palette.frontierWave1, palette.algoB];
+  const bandWidth = [1.9, 1.5, 1.1];
+  const bandOf = (t: number) => (t <= iso.bands[0] ? 0 : t <= iso.bands[1] ? 1 : 2);
+  for (let band = 2; band >= 0; band--) {
+    ctx.strokeStyle = bandColor[band];
+    ctx.lineWidth = bandWidth[band];
+    for (let u = 0; u < g.nodeCount; u++) {
+      if (dist[u] > thr) continue;
+      for (let e = head[u]; e < head[u + 1]; e++) {
+        const v = to[e];
+        if (v < u || dist[v] > thr) continue;
+        const t = Math.max(dist[u], dist[v]);
+        if (bandOf(t) !== band) continue;
+        const gm = geom[e];
+        ctx.beginPath();
+        if (gm) {
+          ctx.moveTo(vp.toScreenX(gm[0]), vp.toScreenY(gm[1]));
+          for (let i = 2; i < gm.length; i += 2) ctx.lineTo(vp.toScreenX(gm[i]), vp.toScreenY(gm[i + 1]));
+        } else {
+          ctx.moveTo(vp.toScreenX(mx[u]), vp.toScreenY(my[u]));
+          ctx.lineTo(vp.toScreenX(mx[v]), vp.toScreenY(my[v]));
+        }
+        ctx.stroke();
       }
-      ctx.stroke();
     }
   }
 }

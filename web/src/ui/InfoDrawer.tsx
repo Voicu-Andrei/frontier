@@ -1,13 +1,32 @@
 import { useStore } from "../state/store";
 import type { Mode } from "../state/scene";
 
+type DiagramKind =
+  | "compass"
+  | "heuristic"
+  | "ripple"
+  | "heap"
+  | "tunnel"
+  | "balls"
+  | "sideBySide"
+  | "ink"
+  | "bands"
+  | "tour"
+  | "factorial"
+  | "stations"
+  | "multisource";
+
+interface Section {
+  heading: string;
+  body: string;
+  diagram: DiagramKind;
+}
+
 interface Info {
   title: string;
   algo: string;
   complexity: string;
-  idea: string;
-  steps: string[];
-  note: string;
+  sections: Section[];
 }
 
 const INFO: Record<Mode, Info> = {
@@ -15,173 +34,302 @@ const INFO: Record<Mode, Info> = {
     title: "Point-to-point routing",
     algo: "A* search",
     complexity: "O((V + E) log V)",
-    idea:
-      "A* is Dijkstra with a sense of direction. It still expands the cheapest-so-far node, but it adds a heuristic h(n) — a straight-line lower bound on the remaining distance — so it preferentially explores toward the target instead of in all directions.",
-    steps: [
-      "Priority = g(n) + h(n): cost so far plus optimistic cost-to-go.",
-      "Pop the lowest-priority node from the heap, mark it settled.",
-      "Relax its neighbours, updating their best cost and predecessor.",
-      "Stop the moment the target is settled — its cost is provably optimal.",
+    sections: [
+      {
+        heading: "THE IDEA — A COMPASS",
+        body: "Dijkstra explores in every direction equally. A* adds a compass: at each step it prefers nodes that look closer to the destination, so it heads roughly straight there instead of wandering.",
+        diagram: "compass",
+      },
+      {
+        heading: "THE HEURISTIC h(n)",
+        body: "The compass is a heuristic: the straight-line distance from a node to the target (÷ top speed for time). It's an optimistic guess — the real road is never shorter — which is exactly what keeps the answer correct.",
+        diagram: "heuristic",
+      },
+      {
+        heading: "HOW IT RUNS",
+        body: "Priority = g(n) + h(n): cost so far plus the guess. A binary heap always hands back the most promising node next; we settle it, relax its neighbours, and stop the instant the target is settled.",
+        diagram: "heap",
+      },
+      {
+        heading: "WHY IT'S OPTIMAL",
+        body: "Because the guess never overestimates, the first time the target comes off the heap its cost is provably the shortest — verified against plain Dijkstra in the tests.",
+        diagram: "ripple",
+      },
     ],
-    note:
-      "Because h never overestimates (admissible), the path is guaranteed shortest — verified against plain Dijkstra in the tests.",
   },
   bidir: {
     title: "Bidirectional search",
     algo: "Bidirectional Dijkstra",
     complexity: "O((V + E) log V), ~½ the nodes",
-    idea:
-      "Run two searches at once: one forward from the start, one backward from the destination over the reversed graph. Each only has to grow a half-radius ball before they collide in the middle, so together they settle far fewer nodes than one search covering the full radius.",
-    steps: [
-      "Alternate: advance whichever frontier is currently cheaper.",
-      "Track μ, the best start→meet→end cost found whenever the frontiers touch.",
-      "Stop once the two smallest frontier keys sum to ≥ μ — nothing shorter can remain.",
-      "Stitch the path: start → meeting node (forward) + meeting node → end (backward).",
+    sections: [
+      {
+        heading: "TWO DIGGERS, ONE TUNNEL",
+        body: "Like digging a tunnel from both ends at once: one search grows from the start, another from the destination (over the reversed graph). They only have to reach halfway before they meet.",
+        diagram: "tunnel",
+      },
+      {
+        heading: "WHY IT'S FASTER",
+        body: "A single search settles one big disc of radius d. Two searches settle two discs of radius d⁄2 — together far smaller in area, so far fewer nodes are touched.",
+        diagram: "balls",
+      },
+      {
+        heading: "WHEN THEY MEET",
+        body: "Each time the frontiers touch we record the best start→meet→end cost μ. Once the two cheapest frontier nodes sum to ≥ μ, nothing shorter can exist, so we stop and stitch the two halves into one path.",
+        diagram: "tunnel",
+      },
     ],
-    note:
-      "This is the trick real routers use. The readout shows total nodes vs a one-directional Dijkstra on the same query.",
   },
   race: {
     title: "Race / benchmark",
     algo: "Dijkstra vs A*",
     complexity: "same big-O, different constants",
-    idea:
-      "Both algorithms find the same optimal route, but explore very differently. Run them on one query, side by side, and measure the gap — turning a big-O claim into evidence.",
-    steps: [
-      "Left pane: Dijkstra expands a uniform circle outward from the start.",
-      "Right pane: A* expands a narrow teardrop biased toward the target.",
-      "Count settled nodes and wall-clock time for each.",
-      "The speedup is the ratio of nodes explored.",
+    sections: [
+      {
+        heading: "SAME ROUTE, DIFFERENT WORK",
+        body: "Both algorithms return the EXACT same shortest route — so the line is identical in both panes. What differs is how much of the map each one explores to find it.",
+        diagram: "sideBySide",
+      },
+      {
+        heading: "WHAT YOU'RE SEEING",
+        body: "Left: Dijkstra floods outward as a full circle. Right: A* pushes a narrow beam toward the target. The bars count nodes explored and runtime — the speedup is the ratio, measured, not claimed.",
+        diagram: "ripple",
+      },
     ],
-    note: "Timing is measured with no animation/trace overhead in the loop, so the numbers are honest.",
   },
   iso: {
     title: "Isochrone — reachability",
     algo: "Bounded Dijkstra",
     complexity: "O((V + E) log V)",
-    idea:
-      "“How far can someone get from here in N minutes?” Run Dijkstra with a time budget and no target: it settles every node whose travel time is within the budget. The reachable boundary bulges along fast roads and pulls in where the network is slow — never a plain circle.",
-    steps: [
-      "Flood outward from the origin in order of travel time.",
-      "Stop expanding a node once its time exceeds the budget.",
-      "Wrap the reachable nodes into a concave boundary per direction.",
-      "Draw nested contours for fractions of the budget (e.g. ⅓, ⅔, full).",
+    sections: [
+      {
+        heading: "INK ON A MAP",
+        body: "“How far can I get in N minutes?” Imagine ink spreading from the origin, but flowing faster along fast roads. Run Dijkstra with a time budget and no target — every street it reaches in time is reachable.",
+        diagram: "ink",
+      },
+      {
+        heading: "WHY IT'S NOT A CIRCLE",
+        body: "Speed matters: in 10 minutes you travel far along a motorway but only a few blocks through side streets. So the reachable shape stretches along arterials and pulls in elsewhere — never a clean circle.",
+        diagram: "bands",
+      },
+      {
+        heading: "THE COLOUR BANDS",
+        body: "Streets are tinted by arrival time: yellow ≤ ⅓ of the budget, pink ≤ ⅔, violet ≤ the full budget. A concave outline wraps the whole reachable area so it follows the roads, not the empty fields.",
+        diagram: "bands",
+      },
     ],
-    note: "The result is static — set the minutes and read the area. Scrubbing replays the real arrival-time wavefront.",
   },
   multi: {
     title: "Multi-stop routing",
     algo: "TSP · nearest-neighbour",
     complexity: "NP-hard; heuristic here",
-    idea:
-      "Visiting several stops in the best order is the Travelling Salesman Problem — there's no known efficient exact algorithm. We build an all-pairs cost matrix with the routing engine, then order the stops greedily (always go to the nearest unvisited one) and route the real roads between them.",
-    steps: [
-      "Compute shortest cost between every pair of stops (A*).",
-      "Start at the first stop; repeatedly jump to the nearest unvisited stop.",
-      "Stitch the real road path for each consecutive leg.",
-      "(Exact Held-Karp for small n is a planned upgrade.)",
+    sections: [
+      {
+        heading: "THE ERRAND RUN",
+        body: "You have several stops and want the shortest loop that visits them all — the Travelling Salesman Problem. Picture planning errands so you backtrack as little as possible.",
+        diagram: "tour",
+      },
+      {
+        heading: "WHY IT'S HARD",
+        body: "The number of possible orders explodes: 10 stops already have ~180,000 distinct tours, 15 stops have billions. No known algorithm solves it quickly for large n — it's NP-hard.",
+        diagram: "factorial",
+      },
+      {
+        heading: "OUR APPROACH",
+        body: "We build an all-pairs cost matrix with the routing engine, then greedily hop to the nearest unvisited stop and route the real roads between them. Fast and usually good — marked OPT* because it isn't guaranteed perfect.",
+        diagram: "tour",
+      },
     ],
-    note: "Click the map to add stops; Undo/Clear to edit. The order label is marked OPT* — heuristic, not guaranteed optimal.",
   },
   dispatch: {
     title: "Nearest-unit dispatch",
     algo: "Multi-source Dijkstra",
     complexity: "O((V + E) log V)",
-    idea:
-      "Which unit reaches each call first? Seed Dijkstra with every unit at cost 0 simultaneously. The frontiers compete, and each node gets labelled with its nearest unit — carving the map into response territories in a single search instead of one per unit.",
-    steps: [
-      "Push all unit locations into the queue at distance 0.",
-      "Expand normally; each node inherits the origin of whoever reaches it first.",
-      "A call's nearest unit is just its origin label.",
-      "Trace each call back along predecessors to its assigned unit.",
+    sections: [
+      {
+        heading: "WHICH STATION IS CLOSEST?",
+        body: "Several units are on the map; every incoming call should go to whichever can reach it first by road (not by straight line). Think fire stations carving up a city into response zones.",
+        diagram: "stations",
+      },
+      {
+        heading: "ONE SEARCH, MANY SOURCES",
+        body: "Instead of one search per unit, seed Dijkstra with all units at distance 0 at once. The frontiers compete; each street is claimed by whichever unit reaches it first. A call's nearest unit is just whose territory it lands in.",
+        diagram: "multisource",
+      },
     ],
-    note: "Place units and calls by clicking (toggle which you're dropping). The frontier shows the competing territories grow.",
   },
 };
 
-function Diagram({ mode }: { mode: Mode }) {
+const box = { width: "100%", height: 116, display: "block" } as const;
+
+function MiniDiagram({ kind }: { kind: DiagramKind }) {
   const acc = "var(--accent)";
   const muted = "var(--ink-faint)";
   const w1 = "var(--frontier-wave-1)";
   const w2 = "var(--frontier-wave-2)";
+  const algb = "var(--algo-b)";
   const end = "var(--end)";
   const start = "var(--start)";
-  const box = { width: "100%", height: 150, display: "block" } as const;
+  const mono = "var(--font-mono)";
 
-  switch (mode) {
-    case "bidir":
+  switch (kind) {
+    case "compass":
       return (
-        <svg viewBox="0 0 300 150" style={box}>
-          <circle cx="80" cy="75" r="46" fill={acc} opacity="0.12" />
-          <circle cx="80" cy="75" r="30" fill={acc} opacity="0.16" />
-          <circle cx="220" cy="75" r="46" fill={w1} opacity="0.12" />
-          <circle cx="220" cy="75" r="30" fill={w1} opacity="0.16" />
-          <circle cx="80" cy="75" r="6" fill={start} />
-          <circle cx="220" cy="75" r="6" fill={end} />
-          <rect x="144" y="69" width="12" height="12" rx="2" fill={w2} transform="rotate(45 150 75)" />
-          <text x="80" y="135" fill={muted} fontSize="11" textAnchor="middle" fontFamily="var(--font-mono)">start</text>
-          <text x="220" y="135" fill={muted} fontSize="11" textAnchor="middle" fontFamily="var(--font-mono)">end</text>
+        <svg viewBox="0 0 300 116" style={box}>
+          <path d="M60 58 Q60 28 110 28 Q88 43 110 58 Q88 73 110 88 Q60 88 60 58Z" fill={acc} opacity="0.18" stroke={acc} strokeWidth="1.3" />
+          <line x1="70" y1="58" x2="232" y2="58" stroke={muted} strokeWidth="1.2" strokeDasharray="3 5" />
+          <path d="M210 50 L236 58 L210 66" fill="none" stroke={acc} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="60" cy="58" r="5" fill={start} />
+          <circle cx="240" cy="58" r="5" fill={end} />
+          <text x="150" y="50" fill={muted} fontSize="10" textAnchor="middle" fontFamily={mono}>aim at target</text>
         </svg>
       );
-    case "race":
+    case "heuristic":
       return (
-        <svg viewBox="0 0 300 150" style={box}>
-          <circle cx="75" cy="70" r="48" fill={acc} opacity="0.14" />
-          <circle cx="75" cy="70" r="6" fill={start} />
-          <circle cx="120" cy="40" r="6" fill={end} />
-          <path d="M225 70 Q225 40 270 40 Q235 55 270 70 Q235 85 270 100 Q225 100 225 70Z" fill={w1} opacity="0.18" />
-          <circle cx="200" cy="70" r="6" fill={start} />
-          <circle cx="270" cy="40" r="6" fill={end} />
-          <text x="75" y="138" fill={muted} fontSize="11" textAnchor="middle" fontFamily="var(--font-mono)">Dijkstra</text>
-          <text x="235" y="138" fill={muted} fontSize="11" textAnchor="middle" fontFamily="var(--font-mono)">A*</text>
+        <svg viewBox="0 0 300 116" style={box}>
+          <path d="M55 80 Q110 30 150 70 Q190 100 245 45" fill="none" stroke={acc} strokeWidth="2.4" />
+          <line x1="55" y1="80" x2="245" y2="45" stroke={muted} strokeWidth="1.4" strokeDasharray="4 4" />
+          <circle cx="55" cy="80" r="5" fill={start} />
+          <circle cx="245" cy="45" r="5" fill={end} />
+          <text x="150" y="98" fill={acc} fontSize="10" textAnchor="middle" fontFamily={mono}>g(n): real road</text>
+          <text x="150" y="38" fill={muted} fontSize="10" textAnchor="middle" fontFamily={mono}>h(n): straight-line guess</text>
         </svg>
       );
-    case "iso":
+    case "ripple":
       return (
-        <svg viewBox="0 0 300 150" style={box}>
-          <path d="M150 25 Q210 35 235 75 Q215 120 150 128 Q85 120 70 75 Q95 40 150 25Z" fill={w1} opacity="0.14" stroke={w1} strokeWidth="1.5" />
-          <path d="M150 50 Q190 58 205 78 Q190 105 150 110 Q108 102 100 78 Q118 60 150 50Z" fill={w1} opacity="0.16" stroke={w1} strokeWidth="1.5" />
-          <path d="M150 66 Q172 72 180 82 Q170 96 150 98 Q130 94 126 82 Q135 70 150 66Z" fill={w2} opacity="0.26" stroke={w2} strokeWidth="1.5" />
-          <circle cx="150" cy="82" r="5" fill={start} />
-          <text x="150" y="142" fill={muted} fontSize="11" textAnchor="middle" fontFamily="var(--font-mono)">5 · 10 · 15 min</text>
+        <svg viewBox="0 0 300 116" style={box}>
+          {[42, 32, 22, 12].map((r, i) => (
+            <circle key={i} cx="150" cy="58" r={r} fill="none" stroke={i === 0 ? muted : w1} strokeWidth="1.3" opacity={0.4 + i * 0.15} />
+          ))}
+          <circle cx="150" cy="58" r="5" fill={start} />
         </svg>
       );
-    case "multi":
+    case "heap":
       return (
-        <svg viewBox="0 0 300 150" style={box}>
-          <polyline points="50,110 95,45 165,30 245,70 200,120 50,110" fill="none" stroke={acc} strokeWidth="2.5" strokeLinejoin="round" />
-          {[[50, 110], [95, 45], [165, 30], [245, 70], [200, 120]].map(([x, y], i) => (
+        <svg viewBox="0 0 300 116" style={box}>
+          <line x1="150" y1="32" x2="100" y2="64" stroke={muted} strokeWidth="1.2" />
+          <line x1="150" y1="32" x2="200" y2="64" stroke={muted} strokeWidth="1.2" />
+          <line x1="100" y1="64" x2="74" y2="94" stroke={muted} strokeWidth="1.2" />
+          <line x1="100" y1="64" x2="126" y2="94" stroke={muted} strokeWidth="1.2" />
+          <line x1="200" y1="64" x2="174" y2="94" stroke={muted} strokeWidth="1.2" />
+          {[[150, 32, "2", acc], [100, 64, "5", muted], [200, 64, "7", muted], [74, 94, "9", muted], [126, 94, "8", muted], [174, 94, "6", muted]].map(([x, y, t, c], i) => (
             <g key={i}>
-              <circle cx={x} cy={y} r="8" fill={i === 0 ? start : acc} stroke="#fff" strokeWidth="2" />
-              <text x={x} y={y + 4} fill="#fff" fontSize="10" textAnchor="middle" fontFamily="var(--font-mono)" fontWeight="700">{i === 0 ? "S" : i}</text>
+              <circle cx={x as number} cy={y as number} r="11" fill="var(--panel-solid)" stroke={c as string} strokeWidth="1.5" />
+              <text x={x as number} y={(y as number) + 4} fill="var(--ink)" fontSize="11" textAnchor="middle" fontFamily={mono} fontWeight="600">{t as string}</text>
+            </g>
+          ))}
+          <text x="245" y="36" fill={acc} fontSize="9" textAnchor="middle" fontFamily={mono}>min first</text>
+        </svg>
+      );
+    case "tunnel":
+      return (
+        <svg viewBox="0 0 300 116" style={box}>
+          <path d="M30 58 L120 58" stroke={start} strokeWidth="3" strokeLinecap="round" />
+          <path d="M105 50 L122 58 L105 66" fill="none" stroke={start} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M270 58 L180 58" stroke={end} strokeWidth="3" strokeLinecap="round" />
+          <path d="M195 50 L178 58 L195 66" fill="none" stroke={end} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <rect x="144" y="52" width="12" height="12" rx="2" fill={w2} transform="rotate(45 150 58)" />
+          <circle cx="30" cy="58" r="5" fill={start} />
+          <circle cx="270" cy="58" r="5" fill={end} />
+          <text x="150" y="92" fill={muted} fontSize="10" textAnchor="middle" fontFamily={mono}>meet in the middle</text>
+        </svg>
+      );
+    case "balls":
+      return (
+        <svg viewBox="0 0 300 116" style={box}>
+          <circle cx="78" cy="58" r="40" fill={muted} opacity="0.16" stroke={muted} strokeWidth="1.2" />
+          <circle cx="78" cy="58" r="4" fill={start} />
+          <text x="78" y="110" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>1 search</text>
+          <circle cx="190" cy="58" r="22" fill={acc} opacity="0.18" stroke={acc} strokeWidth="1.2" />
+          <circle cx="234" cy="58" r="22" fill={w1} opacity="0.18" stroke={w1} strokeWidth="1.2" />
+          <circle cx="190" cy="58" r="4" fill={start} />
+          <circle cx="234" cy="58" r="4" fill={end} />
+          <text x="212" y="110" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>2 half-searches</text>
+        </svg>
+      );
+    case "sideBySide":
+      return (
+        <svg viewBox="0 0 300 116" style={box}>
+          <circle cx="72" cy="52" r="40" fill={acc} opacity="0.14" />
+          <line x1="72" y1="52" x2="104" y2="30" stroke="var(--route-a)" strokeWidth="2.4" />
+          <circle cx="72" cy="52" r="4" fill={start} /><circle cx="104" cy="30" r="4" fill={end} />
+          <text x="72" y="108" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>Dijkstra</text>
+          <path d="M196 52 Q196 30 228 30 Q210 41 228 52 Q210 63 228 74 Q196 74 196 52Z" fill={w1} opacity="0.2" />
+          <line x1="196" y1="52" x2="228" y2="30" stroke="var(--route-a)" strokeWidth="2.4" />
+          <circle cx="196" cy="52" r="4" fill={start} /><circle cx="228" cy="30" r="4" fill={end} />
+          <text x="214" y="108" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>A* — same line</text>
+        </svg>
+      );
+    case "ink":
+      return (
+        <svg viewBox="0 0 300 116" style={box}>
+          <line x1="40" y1="64" x2="270" y2="40" stroke={muted} strokeWidth="3" opacity="0.5" />
+          <path d="M150 58 Q120 30 150 26 Q250 30 252 40 Q250 56 150 58Z" fill={w1} opacity="0.22" />
+          <path d="M150 58 Q110 80 120 96 Q150 92 150 58Z" fill={w2} opacity="0.3" />
+          <circle cx="150" cy="58" r="5" fill={start} />
+          <text x="240" y="34" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>fast road</text>
+        </svg>
+      );
+    case "bands":
+      return (
+        <svg viewBox="0 0 300 116" style={box}>
+          <path d="M150 18 Q235 28 252 58 Q230 96 150 100 Q72 92 60 58 Q92 30 150 18Z" fill={algb} opacity="0.16" stroke={algb} strokeWidth="1.3" />
+          <path d="M150 34 Q205 42 214 60 Q200 84 150 86 Q104 80 100 60 Q120 44 150 34Z" fill={w1} opacity="0.2" stroke={w1} strokeWidth="1.3" />
+          <path d="M150 46 Q180 52 184 62 Q176 74 150 74 Q126 70 124 62 Q134 50 150 46Z" fill={w2} opacity="0.3" stroke={w2} strokeWidth="1.3" />
+          <circle cx="150" cy="60" r="4" fill={start} />
+          <text x="150" y="112" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>⅓ · ⅔ · full budget</text>
+        </svg>
+      );
+    case "tour":
+      return (
+        <svg viewBox="0 0 300 116" style={box}>
+          <polyline points="60,90 92,34 168,24 236,58 196,98 60,90" fill="none" stroke={acc} strokeWidth="2.2" strokeLinejoin="round" />
+          {[[60, 90], [92, 34], [168, 24], [236, 58], [196, 98]].map(([x, y], i) => (
+            <g key={i}>
+              <circle cx={x} cy={y} r="7" fill={i === 0 ? start : acc} stroke="#fff" strokeWidth="1.6" />
+              <text x={x} y={y + 3} fill="#fff" fontSize="9" textAnchor="middle" fontFamily={mono} fontWeight="700">{i === 0 ? "S" : i}</text>
             </g>
           ))}
         </svg>
       );
-    case "dispatch":
+    case "factorial":
       return (
-        <svg viewBox="0 0 300 150" style={box}>
-          <circle cx="80" cy="55" r="40" fill={acc} opacity="0.12" />
-          <circle cx="215" cy="95" r="40" fill={w1} opacity="0.12" />
-          <line x1="80" y1="55" x2="135" y2="80" stroke={acc} strokeWidth="2" strokeDasharray="1 6" strokeLinecap="round" />
-          <line x1="215" y1="95" x2="160" y2="60" stroke={w1} strokeWidth="2" strokeDasharray="1 6" strokeLinecap="round" />
-          <rect x="73" y="48" width="14" height="14" rx="2" fill={acc} transform="rotate(45 80 55)" />
-          <rect x="208" y="88" width="14" height="14" rx="2" fill={acc} transform="rotate(45 215 95)" />
-          <circle cx="135" cy="80" r="6" fill="none" stroke={end} strokeWidth="3" />
-          <circle cx="160" cy="60" r="6" fill="none" stroke={end} strokeWidth="3" />
-          <text x="150" y="140" fill={muted} fontSize="11" textAnchor="middle" fontFamily="var(--font-mono)">units ◆  ·  calls ◯</text>
+        <svg viewBox="0 0 300 116" style={box}>
+          {(() => {
+            const pts = [[60, 30], [240, 36], [210, 96], [90, 92], [150, 20], [200, 60]];
+            const lines = [];
+            for (let i = 0; i < pts.length; i++)
+              for (let j = i + 1; j < pts.length; j++)
+                lines.push(<line key={`${i}-${j}`} x1={pts[i][0]} y1={pts[i][1]} x2={pts[j][0]} y2={pts[j][1]} stroke={muted} strokeWidth="0.7" opacity="0.5" />);
+            return lines;
+          })()}
+          {[[60, 30], [240, 36], [210, 96], [90, 92], [150, 20], [200, 60]].map(([x, y], i) => (
+            <circle key={i} cx={x} cy={y} r="4" fill={w2} />
+          ))}
+          <text x="150" y="110" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>orders explode with n</text>
         </svg>
       );
-    default: // p2p / A*
+    case "stations":
       return (
-        <svg viewBox="0 0 300 150" style={box}>
-          <path d="M60 75 Q60 35 120 35 Q95 55 120 75 Q95 95 120 115 Q60 115 60 75Z" fill={acc} opacity="0.16" stroke={acc} strokeWidth="1.5" />
-          <circle cx="60" cy="75" r="6" fill={start} />
-          <circle cx="240" cy="75" r="6" fill={end} />
-          <line x1="120" y1="75" x2="234" y2="75" stroke={muted} strokeWidth="1.5" strokeDasharray="3 5" />
-          <text x="175" y="68" fill={muted} fontSize="11" textAnchor="middle" fontFamily="var(--font-mono)">h(n)</text>
-          <text x="60" y="135" fill={muted} fontSize="11" textAnchor="middle" fontFamily="var(--font-mono)">start</text>
-          <text x="240" y="135" fill={muted} fontSize="11" textAnchor="middle" fontFamily="var(--font-mono)">target</text>
+        <svg viewBox="0 0 300 116" style={box}>
+          <path d="M0 0 L150 0 L120 116 L0 116Z" fill={acc} opacity="0.1" />
+          <path d="M150 0 L300 0 L300 116 L120 116Z" fill={w1} opacity="0.1" />
+          <line x1="135" y1="0" x2="105" y2="116" stroke={muted} strokeWidth="1" strokeDasharray="4 4" />
+          <rect x="68" y="44" width="14" height="14" rx="2" fill={acc} transform="rotate(45 75 51)" />
+          <rect x="208" y="58" width="14" height="14" rx="2" fill={acc} transform="rotate(45 215 65)" />
+          <circle cx="150" cy="74" r="6" fill="none" stroke={end} strokeWidth="3" />
+          <text x="150" y="108" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>response zones</text>
+        </svg>
+      );
+    case "multisource":
+      return (
+        <svg viewBox="0 0 300 116" style={box}>
+          <circle cx="80" cy="48" r="30" fill={acc} opacity="0.13" />
+          <circle cx="210" cy="64" r="30" fill={w1} opacity="0.13" />
+          <circle cx="150" cy="40" r="24" fill={algb} opacity="0.13" />
+          <rect x="73" y="41" width="13" height="13" rx="2" fill={acc} transform="rotate(45 80 48)" />
+          <rect x="203" y="57" width="13" height="13" rx="2" fill={acc} transform="rotate(45 210 64)" />
+          <rect x="143" y="33" width="13" height="13" rx="2" fill={acc} transform="rotate(45 150 40)" />
+          <text x="150" y="108" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>frontiers compete</text>
         </svg>
       );
   }
@@ -208,21 +356,15 @@ export function InfoDrawer() {
         </button>
       </div>
 
-      <div className="info-diagram">
-        <Diagram mode={mode} />
-      </div>
-
-      <div className="cap" style={{ marginBottom: 8 }}>THE IDEA</div>
-      <p className="info-p">{info.idea}</p>
-
-      <div className="cap" style={{ margin: "18px 0 8px" }}>HOW IT RUNS</div>
-      <ol className="info-steps">
-        {info.steps.map((s, i) => (
-          <li key={i}>{s}</li>
-        ))}
-      </ol>
-
-      <div className="info-note">{info.note}</div>
+      {info.sections.map((s, i) => (
+        <div key={i} className="info-section">
+          <div className="cap" style={{ marginBottom: 8 }}>{s.heading}</div>
+          <div className="info-diagram">
+            <MiniDiagram kind={s.diagram} />
+          </div>
+          <p className="info-p">{s.body}</p>
+        </div>
+      ))}
     </div>
   );
 }

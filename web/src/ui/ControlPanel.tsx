@@ -37,8 +37,14 @@ export function ControlPanel() {
             </button>
           ))}
         </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 2 }}>
+          <span className="cap" style={{ fontSize: 9 }}>REACHABLE WITHIN</span>
+          <LegendRow color="var(--frontier-wave-2)" label={`≤ ${Math.round(m / 3)} min`} />
+          <LegendRow color="var(--frontier-wave-1)" label={`≤ ${Math.round((2 * m) / 3)} min`} />
+          <LegendRow color="var(--algo-b)" label={`≤ ${m} min`} />
+        </div>
         <span style={{ fontSize: "var(--fs-micro)", color: "var(--ink-faint)", lineHeight: 1.4 }}>
-          Click the map to move the origin.
+          Faster roads reach further. Click the map to move the origin.
         </span>
       </div>
     );
@@ -98,4 +104,13 @@ export function ControlPanel() {
   }
 
   return null;
+}
+
+function LegendRow({ color, label }: { color: string; label: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <span style={{ width: 16, height: 4, borderRadius: 2, background: color, flex: "none" }} />
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-micro)", color: "var(--ink-muted)" }}>{label}</span>
+    </div>
+  );
 }

@@ -12,12 +12,14 @@
     "bench": "vitest run src/engine/__tests__/bench.test.ts"
   },
   "dependencies": {
+    "d3-delaunay": "^6.0.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^4.5.5"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^1.0.0",
+    "@types/d3-delaunay": "^6.0.4",
     "@types/node": "^22.20.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

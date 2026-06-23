@@ -12,11 +12,14 @@ export function RaceChart() {
 
   return (
     <div className="racechart glass">
-      <div className="panel-head">
+      <div className="panel-head" style={{ marginBottom: 4 }}>
         <span className="cap">NODES EXPLORED · RUNTIME</span>
         <span className="algo-tag" style={{ color: "var(--ok)" }}>
           A★ ↓ {r.speedup.toFixed(1)}× FEWER
         </span>
+      </div>
+      <div style={{ fontSize: "var(--fs-micro)", color: "var(--ink-faint)", marginBottom: 12, lineHeight: 1.4 }}>
+        Identical route in both panes — A★ just explores less to find it.
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
         <Bar label="DIJKSTRA" color="var(--algo-a)" nodes={aShown} ms={r.aMs} frac={aShown / maxN} />

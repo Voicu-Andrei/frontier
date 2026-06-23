@@ -2,7 +2,7 @@ import type { Graph, SearchResult, Weight } from "../engine/types";
 import { dijkstra } from "../engine/dijkstra";
 import { astar } from "../engine/astar";
 import { reconstructPath, pathPolyline, pathStats } from "../engine/path";
-import { isochrone, contourHull, type Contour } from "../engine/isochrone";
+import { isochrone } from "../engine/isochrone";
 import { bidirectional, reconstructBidir } from "../engine/bidirectional";
 import { multiSourceDijkstra, reconstructToSource } from "../engine/multisource";
 import { multiStopRoute } from "../engine/multistop";
@@ -30,7 +30,8 @@ export interface Pane {
 }
 
 export interface IsoLayer {
-  contours: Contour[]; // outer -> inner (largest budget first)
+  hullRings: Float64Array[]; // concave boundary of the reachable area
+  bands: number[]; // time-band thresholds (seconds, ascending)
   sx: number;
   sy: number;
   result: SearchResult;
@@ -231,24 +232,26 @@ function buildRace(g: Graph, p: SceneParams): Scene {
 function buildIso(g: Graph, p: SceneParams): Scene {
   const budget = p.isoBudgetMin * 60;
   const iso = isochrone(g, p.source, budget, "time");
-  // three static nested time-contours from the single search
-  const fractions = [1, 0.66, 0.33];
-  const contours = fractions.map((f) => contourHull(g, p.source, iso.result, budget * f));
-  const outer = contours[0];
+  // farthest straight-line reach (along the fastest corridor)
+  let farthest = 0;
+  for (let i = 0; i < g.nodeCount; i++) {
+    if (iso.result.dist[i] === Infinity) continue;
+    farthest = Math.max(farthest, Math.hypot(g.mx[i] - g.mx[p.source], g.my[i] - g.my[p.source]));
+  }
   return {
     mode: "iso",
     panes: [pane(g, iso.result, "DIJKSTRA", "a", [])],
     markers: [marker(g, p.source, "start")],
-    iso: { contours, sx: g.mx[p.source], sy: g.my[p.source], result: iso.result, budget },
+    iso: { hullRings: iso.hull.rings, bands: iso.bands, sx: g.mx[p.source], sy: g.my[p.source], result: iso.result, budget },
     totalSteps: iso.result.settledCount,
     algoLabel: `REACH · ${p.isoBudgetMin} MIN`,
     hud: [
       { label: "TIME BUDGET", value: String(p.isoBudgetMin), unit: "min" },
-      { label: "REACHABLE AREA", value: outer.areaKm2.toFixed(1), unit: "km²" },
+      { label: "REACHABLE AREA", value: iso.hull.areaKm2.toFixed(1), unit: "km²" },
       { label: "NODES REACHED", value: fmt(iso.reachable), unit: "" },
       { label: "% OF NETWORK", value: ((iso.reachable / g.nodeCount) * 100).toFixed(0), unit: "%" },
-      { label: `${Math.round(contours[1].minutes)} MIN AREA`, value: contours[1].areaKm2.toFixed(1), unit: "km²" },
-      { label: `${Math.round(contours[2].minutes)} MIN AREA`, value: contours[2].areaKm2.toFixed(1), unit: "km²" },
+      { label: "FARTHEST", value: (farthest / 1000).toFixed(1), unit: "km" },
+      { label: "AVG REACH SPD", value: String(Math.round((farthest / 1000 / p.isoBudgetMin) * 60)), unit: "km/h" },
     ],
   };
 }

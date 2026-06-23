@@ -572,6 +572,9 @@ body {
 }
 
 /* ---------- info drawer ---------- */
+.info-section {
+  margin-bottom: 22px;
+}
 .info-diagram {
   background: var(--panel);
   border: 1px solid var(--hairline);
