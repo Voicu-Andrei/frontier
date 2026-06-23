@@ -62,9 +62,16 @@ RENDER_PREVIEWS=1 OUT=/tmp/shots npm test -- src/map/__tests__/preview.test.ts
 
 ### Real Munich data
 
-The build environment blocks OSM downloads, so the real graph is produced
-locally — see [`pipeline/README.md`](pipeline/README.md). Output matches
-`GRAPH_FORMAT.md`, so swapping it in needs no app changes.
+One command, zero dependencies (run it where the internet is open — the build
+sandbox blocks the OSM servers):
+
+```bash
+python3 pipeline/fetch_munich.py     # writes web/public/data/munich.graph.json
+```
+
+The app prefers `munich.graph.json` over the synthetic sample automatically, so
+just refresh the browser to land on the real Munich street network. Details and a
+heavier Geofabrik/pyrosm path are in [`pipeline/README.md`](pipeline/README.md).
 
 ## DS&A inventory
 

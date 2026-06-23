@@ -125,3 +125,16 @@ export async function loadGraph(url: string): Promise<Graph> {
   const raw = (await res.json()) as RawGraph;
   return buildGraph(raw);
 }
+
+/** Try each URL in order, returning the first that loads (real Munich, else sample). */
+export async function loadGraphFirst(urls: string[]): Promise<Graph> {
+  for (const url of urls) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return buildGraph((await res.json()) as RawGraph);
+    } catch {
+      /* try the next candidate */
+    }
+  }
+  throw new Error("no graph file could be loaded");
+}

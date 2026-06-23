@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { Graph, Weight } from "../engine/types";
-import { loadGraph } from "../engine/graph";
+import { loadGraphFirst } from "../engine/graph";
 import { KDTree } from "../engine/kdtree";
 import { buildScene, type Mode, type Scene, type SceneParams } from "./scene";
 import type { ThemeId } from "../theme/themes";
@@ -23,7 +23,7 @@ interface State {
   nextClick: "start" | "end";
   tokensOpen: boolean;
 
-  load: (url: string) => Promise<void>;
+  load: (urls: string[]) => Promise<void>;
   setTheme: (t: ThemeId) => void;
   setMode: (m: Mode) => void;
   setWeight: (w: Weight) => void;
@@ -83,9 +83,9 @@ export const useStore = create<State>((set, get) => ({
   nextClick: "start",
   tokensOpen: false,
 
-  async load(url) {
+  async load(urls) {
     try {
-      const graph = await loadGraph(url);
+      const graph = await loadGraphFirst(urls);
       const kdtree = new KDTree(graph);
       const params = defaultParams(graph, kdtree, get().mode, get().weight);
       set({ status: "ready", graph, kdtree, params, scene: buildScene(graph, params), progress: 0, playing: true });

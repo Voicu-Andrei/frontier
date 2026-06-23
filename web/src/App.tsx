@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useStore } from "./state/store";
-import { GRAPH_URL } from "./config";
+import { GRAPH_URLS } from "./config";
 import { MapCanvas } from "./map/MapCanvas";
 import { TopBar } from "./ui/TopBar";
 import { Hud } from "./ui/Hud";
@@ -26,7 +26,7 @@ export function App() {
   const load = useStore((s) => s.load);
 
   useEffect(() => {
-    load(GRAPH_URL);
+    load(GRAPH_URLS);
   }, [load]);
 
   const hint =

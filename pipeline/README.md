@@ -19,26 +19,37 @@ A city-like graph with real lon/lat, metre lengths, and road-class speeds around
 Munich's centre. Real in every algorithmic sense; just not Munich's actual
 streets. This is what the app ships with so it runs out of the box.
 
-### 2. Real Munich from OpenStreetMap (run locally)
+### 2. Real Munich from OpenStreetMap — the easy way (recommended)
 
-The build sandbox blocks Geofabrik/Overpass, so do this on your own machine.
+**Zero dependencies, one command.** `fetch_munich.py` queries Overpass and writes
+the graph directly — no `pip install`, no PBF download, stdlib only. Run it on any
+machine with internet (the build sandbox blocks Overpass, so not there):
+
+```bash
+python3 fetch_munich.py                    # central Munich (inside the Mittlerer Ring)
+python3 fetch_munich.py --bbox 48.06 11.36 48.22 11.72   # the whole city (bigger)
+```
+
+It writes `web/public/data/munich.graph.json`. **The app prefers that file over
+the synthetic sample automatically** — just refresh the browser and you're on the
+real Munich street network.
+
+### 3. Real Munich via a Geofabrik extract (heavier, needs deps)
+
+If you'd rather work from a full `.osm.pbf` extract (e.g. for a very large area):
 
 ```bash
 pip install -r requirements.txt
-
 mkdir -p data
 curl -L -o data/oberbayern.osm.pbf \
   https://download.geofabrik.de/europe/germany/oberbayern-latest.osm.pbf
-
-# parse -> build -> export, clipped to roughly Munich
 python3 export.py data/oberbayern.osm.pbf \
   --bbox 11.40 48.05 11.75 48.25 \
   --out ../web/public/data/munich.graph.json
 ```
 
-Then either overwrite `munich-sample.graph.json`, or set `GRAPH_URL` in
-`web/src/config.ts` to `munich.graph.json`. Nothing else changes — the engine and
-UI consume the same format.
+Both real paths emit the same format the engine and UI already consume — nothing
+in the app changes.
 
 Tip: start with a **tight bbox** (inside the Mittlerer Ring) for fast iteration,
 then widen it once everything works. Smaller graph = snappier queries and faster
