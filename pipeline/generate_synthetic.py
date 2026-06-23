@@ -183,12 +183,17 @@ def build(cols: int, rows: int, seed: int) -> dict:
         river_pts.append(list(xy_to_lonlat(x, y)))
 
     features = {
-        "water": [poly_ellipse(-cols * spacing * 0.30, rows * spacing * 0.34, 520, 320)],
-        "parks": [
-            poly_rect(cols * spacing * 0.18, rows * spacing * 0.10, 760, 520),
-            poly_rect(-cols * spacing * 0.34, -rows * spacing * 0.20, 560, 420),
+        "water": [
+            poly_ellipse(-cols * spacing * 0.31, rows * spacing * 0.35, 600, 380),   # big lake NW
+            poly_ellipse(cols * spacing * 0.38, -rows * spacing * 0.30, 320, 220),   # smaller lake SE
         ],
-        "rivers": [{"pts": river_pts, "width_m": 46}],
+        "parks": [
+            poly_rect(cols * spacing * 0.17, rows * spacing * 0.11, 880, 600),       # big park E
+            poly_rect(-cols * spacing * 0.35, -rows * spacing * 0.22, 640, 470),     # park SW
+            poly_ellipse(cols * spacing * 0.30, rows * spacing * 0.33, 300, 230),    # round park NE
+            poly_rect(-cols * spacing * 0.05, -rows * spacing * 0.36, 520, 300),     # park S
+        ],
+        "rivers": [{"pts": river_pts, "width_m": 60}],
     }
 
     lons = lon

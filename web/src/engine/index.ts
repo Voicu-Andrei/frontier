@@ -22,6 +22,7 @@ export {
 } from "./query";
 export { isochrone, type Isochrone } from "./isochrone";
 export { concaveHull, type ConcaveHull } from "./hull";
+export { yenKShortest, type KPath } from "./yen";
 export { bidirectional, reconstructBidir, type BidirResult } from "./bidirectional";
 export {
   multiSourceDijkstra,

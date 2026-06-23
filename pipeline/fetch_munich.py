@@ -59,6 +59,38 @@ def overpass(query: str, retries: int = 3) -> dict:
     raise SystemExit("Overpass request failed after retries (are you online?)")
 
 
+def fetch_features(bbox) -> dict:
+    """Fetch water + parks polygons for the basemap (rendering only)."""
+    s, w, n, e = bbox
+    query = (
+        f"[out:json][timeout:120];("
+        f'way["natural"="water"]({s},{w},{n},{e});'
+        f'way["waterway"="riverbank"]({s},{w},{n},{e});'
+        f'way["leisure"="park"]({s},{w},{n},{e});'
+        f'way["landuse"~"^(forest|grass|meadow|recreation_ground|village_green)$"]({s},{w},{n},{e});'
+        f'way["natural"="wood"]({s},{w},{n},{e});'
+        f");out geom;"
+    )
+    water, parks = [], []
+    try:
+        print("querying Overpass for water + parks …")
+        res = overpass(query)
+        for el in res.get("elements", []):
+            geom = el.get("geometry")
+            if not geom or len(geom) < 4:
+                continue
+            ring = [[round(p["lon"], 6), round(p["lat"], 6)] for p in geom]
+            tags = el.get("tags", {})
+            if tags.get("natural") == "water" or tags.get("waterway") == "riverbank":
+                water.append(ring)
+            else:
+                parks.append(ring)
+    except Exception as ex:  # features are optional; never block the road export
+        print(f"  (features skipped: {ex})")
+    print(f"  water polys: {len(water)}  park polys: {len(parks)}")
+    return {"water": water, "parks": parks, "rivers": []}
+
+
 def parse_speed(tags: dict, default_kmh: int) -> float:
     raw = tags.get("maxspeed")
     if raw:
@@ -192,6 +224,7 @@ def main():
     args = ap.parse_args()
 
     graph = build(tuple(args.bbox))
+    graph["features"] = fetch_features(tuple(args.bbox))
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     with open(args.out, "w") as f:
         json.dump(graph, f, separators=(",", ":"))

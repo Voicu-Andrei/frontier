@@ -28,6 +28,15 @@ export function ModeIcon({ mode }: { mode: Mode }) {
           <rect x="9.5" y="6" width="4" height="7" rx="1" fill="currentColor" />
         </svg>
       );
+    case "alt":
+      return (
+        <svg {...S}>
+          <circle cx="3" cy="8" r="2" fill="currentColor" />
+          <circle cx="13" cy="8" r="2" fill="currentColor" />
+          <path d="M4.6 7 Q8 2.5 11.4 7" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+          <path d="M4.6 9 Q8 13.5 11.4 9" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+        </svg>
+      );
     case "iso":
       return (
         <svg {...S}>

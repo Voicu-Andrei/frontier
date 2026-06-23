@@ -99,11 +99,15 @@ export function renderOverlay(
   }
 
   if (paneObj) {
-    const reveal = easeOut(progress);
-    for (const route of paneObj.routes) drawRoute(ctx, palette, vp, route, reveal);
+    for (const route of paneObj.routes) {
+      if (progress < route.revealAt) continue;
+      const span = 1 - route.revealAt;
+      const local = span <= 0 ? 1 : (progress - route.revealAt) / span;
+      drawRoute(ctx, palette, vp, route.poly, easeOut(local), route.rank);
+    }
   }
 
-  renderMarkers(ctx, palette, vp, scene.markers, timeMs);
+  renderMarkers(ctx, palette, vp, scene.markers, timeMs, progress);
 }
 
 function drawFrontier(
@@ -201,41 +205,53 @@ function drawIso(ctx: CanvasRenderingContext2D, g: Graph, palette: Palette, vp: 
   }
 }
 
-function drawRoute(ctx: CanvasRenderingContext2D, palette: Palette, vp: Viewport, route: Float64Array, reveal: number): void {
+function drawRoute(ctx: CanvasRenderingContext2D, palette: Palette, vp: Viewport, route: Float64Array, reveal: number, rank = 0): void {
   if (route.length < 4) return;
   const total = route.length / 2 - 1;
   const last = Math.max(1, Math.floor(total * reveal));
-  const grad = ctx.createLinearGradient(
-    vp.toScreenX(route[0]),
-    vp.toScreenY(route[1]),
-    vp.toScreenX(route[route.length - 2]),
-    vp.toScreenY(route[route.length - 1]),
-  );
-  grad.addColorStop(0, palette.routeA);
-  grad.addColorStop(1, palette.routeB);
 
   const trace = () => {
     ctx.beginPath();
     ctx.moveTo(vp.toScreenX(route[0]), vp.toScreenY(route[1]));
     for (let i = 1; i <= last; i++) ctx.lineTo(vp.toScreenX(route[2 * i]), vp.toScreenY(route[2 * i + 1]));
   };
+  // alternatives (rank > 0) are thinner solid lines; the primary is the gradient
+  const altColors = [palette.frontierWave2, palette.algoB, palette.start];
+  const isAlt = rank > 0;
   // casing
   trace();
   ctx.strokeStyle = palette.routeCasing;
-  ctx.lineWidth = 6.5;
+  ctx.lineWidth = isAlt ? 5 : 6.5;
   ctx.stroke();
-  // gradient core with glow
+  // core
   trace();
-  ctx.strokeStyle = grad;
-  ctx.lineWidth = 3.4;
-  ctx.shadowColor = palette.routeB;
-  ctx.shadowBlur = 8;
-  ctx.stroke();
-  ctx.shadowBlur = 0;
+  if (isAlt) {
+    ctx.strokeStyle = altColors[(rank - 1) % altColors.length];
+    ctx.lineWidth = 2.8;
+    ctx.globalAlpha = 0.92;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  } else {
+    const grad = ctx.createLinearGradient(
+      vp.toScreenX(route[0]),
+      vp.toScreenY(route[1]),
+      vp.toScreenX(route[route.length - 2]),
+      vp.toScreenY(route[route.length - 1]),
+    );
+    grad.addColorStop(0, palette.routeA);
+    grad.addColorStop(1, palette.routeB);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 3.4;
+    ctx.shadowColor = palette.routeB;
+    ctx.shadowBlur = 8;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
 }
 
-export function renderMarkers(ctx: CanvasRenderingContext2D, palette: Palette, vp: Viewport, markers: MarkerSpec[], timeMs: number): void {
+export function renderMarkers(ctx: CanvasRenderingContext2D, palette: Palette, vp: Viewport, markers: MarkerSpec[], timeMs: number, progress = 1): void {
   for (const m of markers) {
+    if ((m.revealAt ?? 0) > progress) continue;
     const x = vp.toScreenX(m.x);
     const y = vp.toScreenY(m.y);
     switch (m.role) {

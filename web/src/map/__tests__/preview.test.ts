@@ -36,7 +36,7 @@ function paramsFor(g: ReturnType<typeof loadGraph>, kd: KDTree, mode: Mode): Sce
   const pk = (fx: number, fy: number) => kd.nearest(b.minX + fx * (b.maxX - b.minX), b.minY + fy * (b.maxY - b.minY));
   return {
     mode, weight: "time",
-    source: pk(0.2, 0.22), target: pk(0.82, 0.84), isoBudgetMin: 5,
+    source: pk(0.2, 0.22), target: pk(0.82, 0.84), isoBudgetMin: 8,
     stops: [pk(0.2, 0.25), pk(0.52, 0.72), pk(0.8, 0.6), pk(0.66, 0.3), pk(0.36, 0.52)],
     units: [pk(0.2, 0.72), pk(0.76, 0.76), pk(0.8, 0.24), pk(0.26, 0.26)],
     jobs: [pk(0.5, 0.56), pk(0.62, 0.4), pk(0.4, 0.7), pk(0.7, 0.62)],
@@ -51,11 +51,12 @@ describe.skipIf(!process.env.RENDER_PREVIEWS)("render previews", () => {
 
   const shots: [string, Mode, keyof typeof PALETTES, number][] = [
     ["p2p-carbon", "p2p", "carbon", 0.62],
-    ["bidir-carbon", "bidir", "carbon", 0.7],
+    ["bidir-carbon", "bidir", "carbon", 0.8],
+    ["alt-carbon", "alt", "carbon", 1.0],
     ["iso-carbon", "iso", "carbon", 1.0],
     ["race-blueprint", "race", "blueprint", 0.5],
-    ["dispatch-carbon", "dispatch", "carbon", 0.85],
-    ["multi-paper", "multi", "paper", 0.9],
+    ["dispatch-carbon", "dispatch", "carbon", 0.7],
+    ["multi-paper", "multi", "paper", 0.95],
     ["p2p-paper", "p2p", "paper", 0.62],
   ];
 

@@ -56,7 +56,7 @@ function defaultParams(g: Graph, kd: KDTree, mode: Mode, weight: Weight): SceneP
     weight,
     source: pick(g, kd, 0.2, 0.22),
     target: pick(g, kd, 0.82, 0.84),
-    isoBudgetMin: 5,
+    isoBudgetMin: 8,
     stops: [
       pick(g, kd, 0.2, 0.25),
       pick(g, kd, 0.52, 0.72),
@@ -148,7 +148,7 @@ export const useStore = create<State>((set, get) => {
       const { graph, kdtree, params, mode, nextClick, placing } = get();
       if (!graph || !kdtree) return;
       const node = kdtree.nearest(worldX, worldY);
-      if (mode === "p2p" || mode === "race" || mode === "bidir") {
+      if (mode === "p2p" || mode === "race" || mode === "bidir" || mode === "alt") {
         if (nextClick === "start") {
           if (node === params.target) return;
           commit({ ...params, source: node }, { nextClick: "end" });

@@ -14,7 +14,17 @@ type DiagramKind =
   | "tour"
   | "factorial"
   | "stations"
-  | "multisource";
+  | "multisource"
+  | "altroutes"
+  | "spur"
+  | "backpointers";
+
+// Shown on EVERY tab — the key thing to understand about the whole app.
+const SHARED: Section = {
+  heading: "SCAN FIRST, THEN REPLAY",
+  body: "Important: the search finishes in an instant. As it runs we record the order nodes were settled and a 'came-from' pointer on each. The animation you watch is a REPLAY of that recording — which is why the route, the meeting point, or a unit's assignment can be shown: they were already discovered when the scan completed. Nothing aims ahead of time; the path is rebuilt by walking the came-from pointers back from the destination.",
+  diagram: "backpointers",
+};
 
 interface Section {
   heading: string;
@@ -137,6 +147,23 @@ const INFO: Record<Mode, Info> = {
         heading: "OUR APPROACH",
         body: "We build an all-pairs cost matrix with the routing engine, then greedily hop to the nearest unvisited stop and route the real roads between them. Fast and usually good — marked OPT* because it isn't guaranteed perfect.",
         diagram: "tour",
+      },
+    ],
+  },
+  alt: {
+    title: "Alternative routes",
+    algo: "Yen's k-shortest paths",
+    complexity: "O(K · V · (E + V log V))",
+    sections: [
+      {
+        heading: "MORE THAN ONE GOOD WAY",
+        body: "There's rarely a single sensible route — usually a few are within a minute or two of each other. Alt finds the k shortest DISTINCT paths so you can pick by preference, avoid a road, or have a backup.",
+        diagram: "altroutes",
+      },
+      {
+        heading: "HOW — SPUR OFF THE BEST",
+        body: "Take the shortest path. Then, at each node along it, force a detour: temporarily ban the edges the known paths already used there and re-route to the destination. Each detour is a candidate; the cheapest unused one becomes the next route. Repeat until you have k.",
+        diagram: "spur",
       },
     ],
   },
@@ -332,6 +359,50 @@ function MiniDiagram({ kind }: { kind: DiagramKind }) {
           <text x="150" y="108" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>frontiers compete</text>
         </svg>
       );
+    case "altroutes":
+      return (
+        <svg viewBox="0 0 300 116" style={box}>
+          <path d="M50 58 Q150 18 250 58" fill="none" stroke="var(--route-a)" strokeWidth="2.6" />
+          <path d="M50 58 Q150 58 250 58" fill="none" stroke={w2} strokeWidth="2.2" opacity="0.85" />
+          <path d="M50 58 Q150 98 250 58" fill="none" stroke={algb} strokeWidth="2.2" opacity="0.85" />
+          <circle cx="50" cy="58" r="5" fill={start} />
+          <circle cx="250" cy="58" r="5" fill={end} />
+          <text x="150" y="110" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>best + 2 alternatives</text>
+        </svg>
+      );
+    case "spur":
+      return (
+        <svg viewBox="0 0 300 116" style={box}>
+          <path d="M40 70 L120 70" stroke={muted} strokeWidth="2.2" />
+          <line x1="84" y1="63" x2="98" y2="77" stroke={end} strokeWidth="2.4" strokeLinecap="round" />
+          <line x1="98" y1="63" x2="84" y2="77" stroke={end} strokeWidth="2.4" strokeLinecap="round" />
+          <path d="M120 70 Q170 30 260 44" fill="none" stroke={w2} strokeWidth="2.4" strokeDasharray="5 4" />
+          <circle cx="40" cy="70" r="5" fill={start} />
+          <circle cx="120" cy="70" r="5" fill={acc} />
+          <circle cx="260" cy="44" r="5" fill={end} />
+          <text x="120" y="92" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>ban an edge, re-route</text>
+        </svg>
+      );
+    case "backpointers":
+      return (
+        <svg viewBox="0 0 300 116" style={box}>
+          {[[50, 58], [110, 40], [170, 64], [230, 46]].map(([x, y], i, a) => (
+            <g key={i}>
+              {i > 0 && (
+                <path
+                  d={`M${x - 6} ${y} L${a[i - 1][0] + 6} ${a[i - 1][1]}`}
+                  stroke={acc}
+                  strokeWidth="1.6"
+                  markerEnd=""
+                  fill="none"
+                />
+              )}
+              <circle cx={x} cy={y} r="9" fill="var(--panel-solid)" stroke={i === 0 ? start : i === a.length - 1 ? end : muted} strokeWidth="1.6" />
+            </g>
+          ))}
+          <text x="150" y="104" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>each node → came-from → start</text>
+        </svg>
+      );
   }
 }
 
@@ -356,7 +427,7 @@ export function InfoDrawer() {
         </button>
       </div>
 
-      {info.sections.map((s, i) => (
+      {[...info.sections, SHARED].map((s, i) => (
         <div key={i} className="info-section">
           <div className="cap" style={{ marginBottom: 8 }}>{s.heading}</div>
           <div className="info-diagram">

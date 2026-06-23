@@ -22,7 +22,7 @@ export function App() {
     load(GRAPH_URLS);
   }, [load]);
 
-  const routingMode = mode === "p2p" || mode === "race" || mode === "bidir";
+  const routingMode = mode === "p2p" || mode === "race" || mode === "bidir" || mode === "alt";
   const hint = routingMode ? (nextClick === "start" ? "Click the map to set the start" : "Click the map to set the destination") : null;
 
   return (

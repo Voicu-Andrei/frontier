@@ -7,6 +7,7 @@ const MODES: { id: Mode; label: string }[] = [
   { id: "p2p", label: "Point" },
   { id: "bidir", label: "Bidir" },
   { id: "race", label: "Race" },
+  { id: "alt", label: "Alt" },
   { id: "iso", label: "Iso" },
   { id: "multi", label: "Multi" },
   { id: "dispatch", label: "Dispatch" },
