@@ -51,7 +51,8 @@ describe.skipIf(!process.env.RENDER_PREVIEWS)("render previews", () => {
 
   const shots: [string, Mode, keyof typeof PALETTES, number][] = [
     ["p2p-carbon", "p2p", "carbon", 0.62],
-    ["iso-carbon", "iso", "carbon", 0.92],
+    ["bidir-carbon", "bidir", "carbon", 0.7],
+    ["iso-carbon", "iso", "carbon", 1.0],
     ["race-blueprint", "race", "blueprint", 0.5],
     ["dispatch-carbon", "dispatch", "carbon", 0.85],
     ["multi-paper", "multi", "paper", 0.9],

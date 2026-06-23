@@ -4,6 +4,9 @@ import { loadGraphFirst } from "../engine/graph";
 import { KDTree } from "../engine/kdtree";
 import { buildScene, type Mode, type Scene, type SceneParams } from "./scene";
 import type { ThemeId } from "../theme/themes";
+import { DEFAULT_SWEEP_SECONDS } from "../config";
+
+export type Placing = "unit" | "call";
 
 interface State {
   status: "loading" | "ready" | "error";
@@ -20,8 +23,10 @@ interface State {
 
   progress: number;
   playing: boolean;
+  speedSec: number; // seconds for a full animation sweep (lower = faster)
   nextClick: "start" | "end";
-  tokensOpen: boolean;
+  placing: Placing; // dispatch: what a click drops
+  infoOpen: boolean;
 
   load: (urls: string[]) => Promise<void>;
   setTheme: (t: ThemeId) => void;
@@ -30,12 +35,16 @@ interface State {
   setProgress: (p: number) => void;
   setPlaying: (p: boolean) => void;
   togglePlay: () => void;
-  toggleTokens: () => void;
+  setSpeed: (sec: number) => void;
+  toggleInfo: () => void;
   setIsoBudget: (min: number) => void;
+  setPlacing: (p: Placing) => void;
   mapClick: (worldX: number, worldY: number) => void;
+  multiUndo: () => void;
+  multiClear: () => void;
+  dispatchClear: (which: "units" | "calls") => void;
 }
 
-/** Pick the graph node nearest a fractional position within the bounds. */
 function pick(g: Graph, kd: KDTree, fx: number, fy: number): number {
   const b = g.bounds;
   return kd.nearest(b.minX + fx * (b.maxX - b.minX), b.minY + fy * (b.maxY - b.minY));
@@ -60,90 +69,114 @@ function defaultParams(g: Graph, kd: KDTree, mode: Mode, weight: Weight): SceneP
   };
 }
 
-export const useStore = create<State>((set, get) => ({
-  status: "loading",
-  graph: null,
-  kdtree: null,
-  theme: "carbon",
-  mode: "p2p",
-  weight: "time",
-  params: {
+export const useStore = create<State>((set, get) => {
+  // Commit a new params object: rebuild the scene and set mode-aware playback.
+  // Isochrone is a static answer, so it shows fully and doesn't auto-play.
+  const commit = (next: SceneParams, extra: Partial<State> = {}) => {
+    const { graph } = get();
+    if (!graph) return set({ params: next, ...extra });
+    const isStatic = next.mode === "iso";
+    set({
+      params: next,
+      scene: buildScene(graph, next),
+      progress: isStatic ? 1 : 0,
+      playing: !isStatic,
+      ...extra,
+    });
+  };
+
+  return {
+    status: "loading",
+    graph: null,
+    kdtree: null,
+    theme: "carbon",
     mode: "p2p",
     weight: "time",
-    source: 0,
-    target: 0,
-    isoBudgetMin: 8,
-    stops: [],
-    units: [],
-    jobs: [],
-  },
-  scene: null,
-  progress: 0,
-  playing: true,
-  nextClick: "start",
-  tokensOpen: false,
+    params: {
+      mode: "p2p",
+      weight: "time",
+      source: 0,
+      target: 0,
+      isoBudgetMin: 5,
+      stops: [],
+      units: [],
+      jobs: [],
+    },
+    scene: null,
+    progress: 0,
+    playing: true,
+    speedSec: DEFAULT_SWEEP_SECONDS,
+    nextClick: "start",
+    placing: "call",
+    infoOpen: false,
 
-  async load(urls) {
-    try {
-      const graph = await loadGraphFirst(urls);
-      const kdtree = new KDTree(graph);
-      const params = defaultParams(graph, kdtree, get().mode, get().weight);
-      set({ status: "ready", graph, kdtree, params, scene: buildScene(graph, params), progress: 0, playing: true });
-    } catch (e) {
-      set({ status: "error", error: String(e) });
-    }
-  },
-
-  setTheme: (theme) => set({ theme }),
-
-  setMode(mode) {
-    const { graph, params } = get();
-    if (!graph) return set({ mode });
-    const next = { ...params, mode };
-    set({ mode, params: next, scene: buildScene(graph, next), progress: 0, playing: true });
-  },
-
-  setWeight(weight) {
-    const { graph, params } = get();
-    if (!graph) return set({ weight });
-    const next = { ...params, weight };
-    set({ weight, params: next, scene: buildScene(graph, next), progress: 0, playing: true });
-  },
-
-  setProgress: (progress) => set({ progress }),
-  setPlaying: (playing) => set({ playing }),
-  togglePlay: () => set((s) => ({ playing: !s.playing })),
-  toggleTokens: () => set((s) => ({ tokensOpen: !s.tokensOpen })),
-
-  setIsoBudget(minutes) {
-    const { graph, params } = get();
-    if (!graph) return;
-    const next = { ...params, isoBudgetMin: minutes };
-    set({ params: next, scene: buildScene(graph, next), progress: 0, playing: true });
-  },
-
-  mapClick(worldX, worldY) {
-    const { graph, kdtree, params, mode, nextClick } = get();
-    if (!graph || !kdtree) return;
-    const node = kdtree.nearest(worldX, worldY);
-    let next = { ...params };
-    let flip = nextClick;
-    if (mode === "p2p" || mode === "race") {
-      if (nextClick === "start") {
-        next.source = node;
-        flip = "end";
-      } else {
-        next.target = node;
-        flip = "start";
+    async load(urls) {
+      try {
+        const graph = await loadGraphFirst(urls);
+        const kdtree = new KDTree(graph);
+        const params = defaultParams(graph, kdtree, get().mode, get().weight);
+        set({ status: "ready", graph, kdtree });
+        commit(params);
+      } catch (e) {
+        set({ status: "error", error: String(e) });
       }
-    } else if (mode === "iso") {
-      next.source = node;
-    } else if (mode === "multi") {
-      next = { ...params, stops: [node, ...params.stops.slice(1)] };
-    } else if (mode === "dispatch") {
-      next = { ...params, jobs: [node, ...params.jobs.slice(1)] };
-    }
-    if (next.source === next.target) return; // ignore degenerate
-    set({ params: next, scene: buildScene(graph, next), progress: 0, playing: true, nextClick: flip });
-  },
-}));
+    },
+
+    setTheme: (theme) => set({ theme }),
+    setMode(mode) {
+      const next = { ...get().params, mode };
+      set({ mode });
+      commit(next);
+    },
+    setWeight(weight) {
+      const next = { ...get().params, weight };
+      set({ weight });
+      commit(next);
+    },
+    setProgress: (progress) => set({ progress }),
+    setPlaying: (playing) => set({ playing }),
+    togglePlay: () => set((s) => ({ playing: !s.playing })),
+    setSpeed: (speedSec) => set({ speedSec }),
+    toggleInfo: () => set((s) => ({ infoOpen: !s.infoOpen })),
+
+    setIsoBudget(minutes) {
+      commit({ ...get().params, isoBudgetMin: minutes });
+    },
+    setPlacing: (placing) => set({ placing }),
+
+    mapClick(worldX, worldY) {
+      const { graph, kdtree, params, mode, nextClick, placing } = get();
+      if (!graph || !kdtree) return;
+      const node = kdtree.nearest(worldX, worldY);
+      if (mode === "p2p" || mode === "race" || mode === "bidir") {
+        if (nextClick === "start") {
+          if (node === params.target) return;
+          commit({ ...params, source: node }, { nextClick: "end" });
+        } else {
+          if (node === params.source) return;
+          commit({ ...params, target: node }, { nextClick: "start" });
+        }
+      } else if (mode === "iso") {
+        commit({ ...params, source: node });
+      } else if (mode === "multi") {
+        if (params.stops.length >= 9) return;
+        commit({ ...params, stops: [...params.stops, node] });
+      } else if (mode === "dispatch") {
+        if (placing === "unit") commit({ ...params, units: [...params.units, node] });
+        else commit({ ...params, jobs: [...params.jobs, node] });
+      }
+    },
+
+    multiUndo() {
+      const { params } = get();
+      commit({ ...params, stops: params.stops.slice(0, -1) });
+    },
+    multiClear() {
+      commit({ ...get().params, stops: [] });
+    },
+    dispatchClear(which) {
+      const { params } = get();
+      commit(which === "units" ? { ...params, units: [] } : { ...params, jobs: [] });
+    },
+  };
+});

@@ -72,6 +72,23 @@ export function buildGraph(raw: RawGraph): Graph {
 
   const features = projectFeatures(raw, project);
 
+  // --- Reverse (transpose) CSR, for the backward half of bidirectional search.
+  // rEdge[slot] maps back to the original forward edge id (for weight/geometry).
+  const rhead = new Int32Array(nodeCount + 1);
+  for (let e = 0; e < edgeCount; e++) rhead[to[e] + 1]++;
+  for (let v = 0; v < nodeCount; v++) rhead[v + 1] += rhead[v];
+  const rto = new Int32Array(edgeCount);
+  const rEdge = new Int32Array(edgeCount);
+  const rcursor = Int32Array.from(rhead.subarray(0, nodeCount));
+  for (let u = 0; u < nodeCount; u++) {
+    for (let e = head[u]; e < head[u + 1]; e++) {
+      const t = to[e];
+      const slot = rcursor[t]++;
+      rto[slot] = u;
+      rEdge[slot] = e;
+    }
+  }
+
   return {
     nodeCount,
     edgeCount,
@@ -85,6 +102,9 @@ export function buildGraph(raw: RawGraph): Graph {
     time_s,
     klass,
     geom,
+    rhead,
+    rto,
+    rEdge,
     meta: raw.meta,
     features,
     proj: { lon0, lat0, mPerDegLon, mPerDegLat: M_PER_DEG_LAT },

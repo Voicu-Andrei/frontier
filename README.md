@@ -14,15 +14,18 @@ scratch — wrapped into several live, animated features over a real city graph.
 | Mode | What it shows | Algorithm |
 |------|---------------|-----------|
 | **Point** | click two points → on-road route with distance / ETA / turns | A* |
+| **Bidir** | search from both ends, meet in the middle (what real routers do) | bidirectional Dijkstra |
 | **Race** | split screen, same query, Dijkstra vs A* frontier + node counts | both, benchmarked |
-| **Iso** | reachable area within a time budget — bands grow along fast roads | bounded Dijkstra + reach hull |
-| **Multi** | order several stops and route through them | nearest-neighbour TSP over A* |
-| **Dispatch** | which unit reaches each call first | multi-source Dijkstra |
+| **Iso** | "how far in N minutes?" — static nested time-contours | bounded Dijkstra + concave hulls |
+| **Multi** | order several editable stops and route through them | nearest-neighbour TSP over A* |
+| **Dispatch** | which unit reaches each call first (editable units & calls) | multi-source Dijkstra |
 
 Plus: 3 fully tokenised themes (Paper / Carbon / Blueprint — reskin = one CSS
-block), a live token inspector, a timeline scrubber that replays the search
-frontier step by step, wheel-zoom / drag-pan, and a self-rendered vector map (no
-tiles) so routes are always *on the road* and the whole map reskins per theme.
+block), an **Info panel** that explains the current mode's algorithm with a
+diagram, an adjustable **animation-speed** control, a timeline scrubber that
+replays the search frontier step by step, wheel-zoom / drag-pan, and a
+self-rendered vector map (no tiles) so routes are always *on the road* and the
+whole map reskins per theme.
 
 ## Architecture
 
@@ -78,8 +81,8 @@ heavier Geofabrik/pyrosm path are in [`pipeline/README.md`](pipeline/README.md).
 - **Data structures:** binary min-heap with decrease-key; CSR adjacency graph;
   2-D k-d tree (spatial snap); hash/typed-array maps.
 - **Algorithms:** BFS/DFS baseline, Dijkstra, A* (admissible Euclidean/time
-  heuristic), bounded single-source search (isochrone), multi-source Dijkstra,
-  nearest-neighbour TSP. *Planned:* bidirectional search, contraction
+  heuristic), bidirectional Dijkstra, bounded single-source search (isochrone),
+  multi-source Dijkstra, nearest-neighbour TSP. *Planned:* contraction
   hierarchies / ALT landmarks, Held-Karp, Yen's k-shortest, max-flow min-cut.
 - **Analysis:** theoretical big-O per algorithm + empirical benchmarking (nodes
   settled, wall-clock) surfaced in `bench.test.ts` and live in Race mode.
@@ -95,7 +98,7 @@ heavier Geofabrik/pyrosm path are in [`pipeline/README.md`](pipeline/README.md).
 
 ## Status
 
-Tier 1 (point-to-point) and Tier 2 (race/benchmark) are complete; Tier 3
-features (isochrone, multi-stop, dispatch) are in as working first cuts.
-Bidirectional search, contraction hierarchies, and the showstopper max-flow
-containment are the next rungs.
+Tier 1 (point-to-point) and Tier 2 (bidirectional search + race/benchmark) are
+complete; Tier 3 features (isochrone, multi-stop, dispatch) are in as working,
+editable first cuts. Contraction hierarchies / ALT landmarks and the showstopper
+max-flow containment are the next rungs.

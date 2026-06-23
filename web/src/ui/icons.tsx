@@ -12,6 +12,15 @@ export function ModeIcon({ mode }: { mode: Mode }) {
           <circle cx="13" cy="3" r="2.2" fill="currentColor" />
         </svg>
       );
+    case "bidir":
+      return (
+        <svg {...S}>
+          <circle cx="3" cy="8" r="2.1" fill="currentColor" />
+          <circle cx="13" cy="8" r="2.1" fill="currentColor" />
+          <path d="M5.2 6.4 L8 8 L5.2 9.6" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M10.8 6.4 L8 8 L10.8 9.6" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
     case "race":
       return (
         <svg {...S}>
@@ -44,6 +53,16 @@ export function ModeIcon({ mode }: { mode: Mode }) {
         </svg>
       );
   }
+}
+
+export function InfoIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6.6" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="8" cy="5" r="1" fill="currentColor" />
+      <path d="M8 7.4 V11.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
 }
 
 export function Logo() {

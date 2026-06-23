@@ -1,10 +1,11 @@
 import { useStore } from "../state/store";
 import { THEMES } from "../theme/themes";
 import type { Mode } from "../state/scene";
-import { Logo, ModeIcon } from "./icons";
+import { Logo, ModeIcon, InfoIcon } from "./icons";
 
 const MODES: { id: Mode; label: string }[] = [
   { id: "p2p", label: "Point" },
+  { id: "bidir", label: "Bidir" },
   { id: "race", label: "Race" },
   { id: "iso", label: "Iso" },
   { id: "multi", label: "Multi" },
@@ -15,11 +16,11 @@ export function TopBar() {
   const mode = useStore((s) => s.mode);
   const theme = useStore((s) => s.theme);
   const weight = useStore((s) => s.weight);
-  const tokensOpen = useStore((s) => s.tokensOpen);
+  const infoOpen = useStore((s) => s.infoOpen);
   const setMode = useStore((s) => s.setMode);
   const setTheme = useStore((s) => s.setTheme);
   const setWeight = useStore((s) => s.setWeight);
-  const toggleTokens = useStore((s) => s.toggleTokens);
+  const toggleInfo = useStore((s) => s.toggleInfo);
 
   return (
     <div className="topbar">
@@ -69,8 +70,11 @@ export function TopBar() {
         ))}
       </div>
 
-      <button className={`tokens-btn${tokensOpen ? " active" : ""}`} onClick={toggleTokens}>
-        TOKENS
+      <button className={`tokens-btn${infoOpen ? " active" : ""}`} onClick={toggleInfo} title="How this algorithm works">
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <InfoIcon />
+          INFO
+        </span>
       </button>
     </div>
   );

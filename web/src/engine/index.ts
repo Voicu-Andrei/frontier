@@ -20,7 +20,8 @@ export {
   type RouteResult,
   type BenchRow,
 } from "./query";
-export { isochrone, type Isochrone } from "./isochrone";
+export { isochrone, contourHull, type Isochrone, type Contour } from "./isochrone";
+export { bidirectional, reconstructBidir, type BidirResult } from "./bidirectional";
 export {
   multiSourceDijkstra,
   reconstructToSource,

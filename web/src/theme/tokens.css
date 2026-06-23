@@ -34,15 +34,15 @@
 
 /* ---- THEME: PAPER (light baseline) ---- */
 [data-theme="paper"] {
-  --bg: #e7e4dd;
-  --map-land: #f3f1ec;
-  --map-land-2: #ece9e2;
-  --map-water: #c6dcef;
-  --map-park: #d7e7cd;
-  --map-road-casing: #e3e0d7;
+  --bg: #dcd8cf;
+  --map-land: #e4e0d6;
+  --map-land-2: #ded9cd;
+  --map-water: #aaccea;
+  --map-park: #cbe0bd;
+  --map-road-casing: #c2bcab;
   --map-road: #ffffff;
-  --map-road-minor: #f7f5ef;
-  --map-label: #9a958a;
+  --map-road-minor: #f1ede3;
+  --map-label: #8b8678;
   --ink: #1b1d22;
   --ink-muted: #5a6069;
   --ink-faint: #9aa0aa;

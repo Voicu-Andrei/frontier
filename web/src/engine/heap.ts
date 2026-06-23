@@ -31,6 +31,16 @@ export class MinHeap {
     return p === -1 ? Infinity : this.keys[p];
   }
 
+  /** The minimum item without removing it (-1 if empty). */
+  top(): number {
+    return this.n === 0 ? -1 : this.items[0];
+  }
+
+  /** The minimum key without removing it (Infinity if empty). */
+  topKey(): number {
+    return this.n === 0 ? Infinity : this.keys[0];
+  }
+
   /** Insert, or decrease the key if the item is already present. */
   push(item: number, key: number): void {
     const p = this.pos[item];

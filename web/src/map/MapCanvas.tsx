@@ -3,7 +3,6 @@ import { useStore } from "../state/store";
 import { Viewport } from "./projection";
 import { renderBase, renderOverlay } from "./render";
 import { readPalette, type Palette } from "../theme/themes";
-import { SWEEP_SECONDS } from "../config";
 
 interface Panel {
   x: number;
@@ -83,7 +82,7 @@ export function MapCanvas() {
       last = now;
       const st = useStore.getState();
       if (st.playing && st.scene) {
-        let p = st.progress + dt / (SWEEP_SECONDS * 1000);
+        let p = st.progress + dt / (st.speedSec * 1000);
         if (p >= 1) p = 0;
         st.setProgress(p);
       }

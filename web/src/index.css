@@ -459,6 +459,156 @@ body {
   white-space: nowrap;
 }
 
+/* ---------- mode control panel ---------- */
+.controls {
+  position: absolute;
+  top: 70px;
+  left: 16px;
+  width: 248px;
+  border-radius: var(--r-3);
+  padding: 13px 15px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.ctl-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ctl-spread {
+  justify-content: space-between;
+}
+.ctl-btn {
+  padding: 7px 11px;
+  border-radius: var(--r-2);
+  border: 1px solid var(--hairline);
+  background: var(--panel);
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: var(--fs-cap);
+  font-weight: 600;
+  transition: all var(--t-fast) var(--ease);
+}
+.ctl-btn:hover {
+  color: var(--ink);
+  border-color: var(--ink-faint);
+}
+.ctl-btn.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.ctl-step {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  padding: 0;
+}
+.ctl-bignum {
+  font-family: var(--font-mono);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 42px;
+  text-align: center;
+}
+.ctl-presets {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.ctl-preset {
+  flex: 1;
+  padding: 5px 0;
+  border-radius: var(--r-1);
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+}
+.ctl-preset.active {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+/* ---------- speed control in scrubber ---------- */
+.speed {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.speed-pills {
+  display: flex;
+  gap: 1px;
+  padding: 2px;
+  background: var(--hairline);
+  border-radius: var(--r-2);
+}
+.speed-pill {
+  padding: 4px 7px;
+  border: none;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: var(--r-1);
+}
+.speed-pill.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* ---------- info drawer ---------- */
+.info-diagram {
+  background: var(--panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-2);
+  padding: 8px;
+  margin-bottom: 18px;
+}
+.info-p {
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  color: var(--ink-muted);
+  margin: 0;
+}
+.info-steps {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.info-steps li {
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+.info-note {
+  margin-top: 18px;
+  padding: 11px 13px;
+  border-radius: var(--r-2);
+  background: var(--panel);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--accent);
+  font-size: var(--fs-cap);
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
 /* ---------- overlays ---------- */
 .overlay-center {
   position: absolute;
@@ -473,7 +623,8 @@ body {
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
 }
-.hint {
+.hint,
+.notice {
   position: absolute;
   bottom: 92px;
   left: 50%;
@@ -484,6 +635,10 @@ body {
   color: var(--ink-muted);
   z-index: 19;
   pointer-events: none;
+}
+.notice {
+  color: var(--ink);
+  border-color: var(--accent);
 }
 .spin {
   width: 26px;

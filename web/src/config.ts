@@ -6,5 +6,14 @@ export const GRAPH_URLS = [
   `${import.meta.env.BASE_URL}data/munich-sample.graph.json`,
 ];
 
-/** Seconds for a full frontier-expansion animation sweep, per mode. */
-export const SWEEP_SECONDS = 8;
+/** Default seconds for a full frontier-expansion animation sweep (user-adjustable). */
+export const DEFAULT_SWEEP_SECONDS = 8;
+
+/** Animation speed presets (seconds per sweep); lower = faster. */
+export const SPEED_PRESETS: { label: string; sec: number }[] = [
+  { label: "0.25×", sec: 24 },
+  { label: "0.5×", sec: 16 },
+  { label: "1×", sec: 8 },
+  { label: "2×", sec: 4 },
+  { label: "4×", sec: 2 },
+];

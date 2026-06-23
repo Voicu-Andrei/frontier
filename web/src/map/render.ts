@@ -92,7 +92,10 @@ export function renderOverlay(
   if (scene.iso) {
     drawIso(ctx, g, palette, vp, scene.iso, progress);
   } else if (paneObj) {
-    drawFrontier(ctx, palette, vp, paneObj.frontier, paneObj.frontierCount, progress);
+    drawFrontier(ctx, palette, vp, paneObj.frontier, paneObj.frontierCount, progress, "warm");
+    if (paneObj.frontierB) {
+      drawFrontier(ctx, palette, vp, paneObj.frontierB, paneObj.frontierBCount ?? 0, progress, "cool");
+    }
   }
 
   if (paneObj) {
@@ -103,23 +106,34 @@ export function renderOverlay(
   renderMarkers(ctx, palette, vp, scene.markers, timeMs);
 }
 
-function drawFrontier(ctx: CanvasRenderingContext2D, palette: Palette, vp: Viewport, segs: Float64Array, count: number, progress: number): void {
+function drawFrontier(
+  ctx: CanvasRenderingContext2D,
+  palette: Palette,
+  vp: Viewport,
+  segs: Float64Array,
+  count: number,
+  progress: number,
+  variant: "warm" | "cool",
+): void {
   const k = Math.floor(progress * count);
   if (k <= 0) return;
   const hot = Math.max(2, count * 0.03);
   const warm = Math.max(8, count * 0.12);
+  const hotC = variant === "warm" ? palette.frontierWave2 : palette.routeB;
+  const warmC = variant === "warm" ? palette.frontierWave1 : palette.algoB;
+  const settleC = palette.frontierSettle;
   for (let i = 0; i < k; i++) {
     const d = k - i;
     let color: string;
     let lw: number;
     if (d < hot) {
-      color = palette.frontierWave2;
+      color = hotC;
       lw = 2.2;
     } else if (d < warm) {
-      color = palette.frontierWave1;
+      color = warmC;
       lw = 1.5;
     } else {
-      color = palette.frontierSettle;
+      color = settleC;
       lw = 1.0;
     }
     const o = i * 4;
@@ -133,13 +147,37 @@ function drawFrontier(ctx: CanvasRenderingContext2D, palette: Palette, vp: Viewp
 }
 
 function drawIso(ctx: CanvasRenderingContext2D, g: Graph, palette: Palette, vp: Viewport, iso: Scene["iso"] & object, progress: number): void {
+  // STATIC nested time-contours (outer -> inner). They do NOT scale with the
+  // scrubber — each is the real reachable boundary for a fixed minute budget.
+  const bandColors = [palette.frontierSettle, palette.frontierWave1, palette.frontierWave2];
+  const bandAlpha = [0.16, 0.18, 0.24];
+  iso.contours.forEach((c, i) => {
+    const color = bandColors[Math.min(i, 2)];
+    ctx.beginPath();
+    for (let k = 0; k < c.hull.length; k += 2) {
+      const sx = vp.toScreenX(c.hull[k]);
+      const sy = vp.toScreenY(c.hull[k + 1]);
+      if (k === 0) ctx.moveTo(sx, sy);
+      else ctx.lineTo(sx, sy);
+    }
+    ctx.closePath();
+    ctx.globalAlpha = bandAlpha[Math.min(i, 2)];
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.globalAlpha = 0.85;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  });
+
+  // The reachable road network, highlighted. The scrubber floods it in by REAL
+  // arrival time (a genuine wavefront), not by scaling a blob.
   const thr = progress * iso.budget;
   const { dist } = iso.result;
-
-  // real reachable road network within the current time threshold (spiky!)
-  ctx.strokeStyle = palette.frontierSettle;
-  ctx.lineWidth = 1.1;
   const { head, to, geom, mx, my } = g;
+  ctx.strokeStyle = palette.frontierWave1;
+  ctx.lineWidth = 1.2;
   for (let u = 0; u < g.nodeCount; u++) {
     if (dist[u] > thr) continue;
     for (let e = head[u]; e < head[u + 1]; e++) {
@@ -156,48 +194,6 @@ function drawIso(ctx: CanvasRenderingContext2D, g: Graph, palette: Palette, vp: 
       }
       ctx.stroke();
     }
-  }
-
-  // nested spiky time-contour bands, grown from the source
-  const eased = easeOut(progress);
-  const bands: [number, string, number][] = [
-    [1.0, palette.frontierSettle, 0.22],
-    [0.66, palette.frontierWave1, 0.16],
-    [0.33, palette.frontierWave2, 0.22],
-  ];
-  for (const [f, color, alpha] of bands) {
-    const scale = f * eased;
-    ctx.beginPath();
-    for (let i = 0; i < iso.hull.length; i += 2) {
-      const x = iso.sx + (iso.hull[i] - iso.sx) * scale;
-      const y = iso.sy + (iso.hull[i + 1] - iso.sy) * scale;
-      const sx = vp.toScreenX(x);
-      const sy = vp.toScreenY(y);
-      if (i === 0) ctx.moveTo(sx, sy);
-      else ctx.lineTo(sx, sy);
-    }
-    ctx.closePath();
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  }
-
-  // dashed "naive radius" estimate circle
-  const r = iso.estRadius * eased * vp.scale;
-  if (r > 3) {
-    ctx.setLineDash([2, 7]);
-    ctx.strokeStyle = palette.inkFaint;
-    ctx.lineWidth = 1.4;
-    ctx.globalAlpha = 0.6;
-    ctx.beginPath();
-    ctx.arc(vp.toScreenX(iso.sx), vp.toScreenY(iso.sy), r, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-    ctx.setLineDash([]);
   }
 }
 
@@ -273,6 +269,21 @@ export function renderMarkers(ctx: CanvasRenderingContext2D, palette: Palette, v
       case "job":
         ring(ctx, x, y, 7, palette.end, 3);
         break;
+      case "meet": {
+        // where the two bidirectional searches collided
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(Math.PI / 4);
+        ctx.fillStyle = palette.frontierWave2;
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.rect(-6, -6, 12, 12);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+        break;
+      }
       case "stop":
         dot(ctx, x, y, 10, palette.accent, "#fff");
         if (m.label) {

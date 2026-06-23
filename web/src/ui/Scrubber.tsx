@@ -1,14 +1,17 @@
 import { useRef } from "react";
 import { useStore } from "../state/store";
+import { SPEED_PRESETS } from "../config";
 
 export function Scrubber() {
   const trackRef = useRef<HTMLDivElement>(null);
   const scene = useStore((s) => s.scene);
   const progress = useStore((s) => s.progress);
   const playing = useStore((s) => s.playing);
+  const speedSec = useStore((s) => s.speedSec);
   const togglePlay = useStore((s) => s.togglePlay);
   const setProgress = useStore((s) => s.setProgress);
   const setPlaying = useStore((s) => s.setPlaying);
+  const setSpeed = useStore((s) => s.setSpeed);
 
   const total = scene?.totalSteps ?? 0;
   const step = Math.round(progress * total);
@@ -54,6 +57,21 @@ export function Scrubber() {
         <div className="track-rail" />
         <div className="track-fill" style={{ width: pct }} />
         <div className="track-thumb" style={{ left: pct }} />
+      </div>
+
+      <div className="speed">
+        <span className="cap" style={{ fontSize: 9 }}>SPEED</span>
+        <div className="speed-pills">
+          {SPEED_PRESETS.map((p) => (
+            <button
+              key={p.sec}
+              className={`speed-pill${speedSec === p.sec ? " active" : ""}`}
+              onClick={() => setSpeed(p.sec)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="scrub-steps">

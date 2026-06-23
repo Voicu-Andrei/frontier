@@ -6,15 +6,8 @@ import { TopBar } from "./ui/TopBar";
 import { Hud } from "./ui/Hud";
 import { Scrubber } from "./ui/Scrubber";
 import { RaceChart } from "./ui/RaceChart";
-import { TokensDrawer } from "./ui/TokensDrawer";
-
-const HINTS: Record<string, string> = {
-  start: "Click the map to set the start",
-  end: "Click the map to set the destination",
-  iso: "Click to move the origin",
-  multi: "Click to move the first stop",
-  dispatch: "Click to drop a call",
-};
+import { InfoDrawer } from "./ui/InfoDrawer";
+import { ControlPanel } from "./ui/ControlPanel";
 
 export function App() {
   const status = useStore((s) => s.status);
@@ -29,10 +22,8 @@ export function App() {
     load(GRAPH_URLS);
   }, [load]);
 
-  const hint =
-    mode === "p2p" || mode === "race"
-      ? HINTS[nextClick]
-      : HINTS[mode];
+  const routingMode = mode === "p2p" || mode === "race" || mode === "bidir";
+  const hint = routingMode ? (nextClick === "start" ? "Click the map to set the start" : "Click the map to set the destination") : null;
 
   return (
     <div className="app-root" data-theme={theme}>
@@ -43,10 +34,11 @@ export function App() {
       {status === "ready" && (
         <>
           <TopBar />
+          <ControlPanel />
           <Hud />
           <RaceChart />
           <Scrubber />
-          <TokensDrawer />
+          <InfoDrawer />
 
           {mode === "race" && scene && (
             <>
@@ -55,7 +47,11 @@ export function App() {
             </>
           )}
 
-          <div className="hint glass">{hint}</div>
+          {scene?.notice ? (
+            <div className="notice glass">{scene.notice}</div>
+          ) : hint ? (
+            <div className="hint glass">{hint}</div>
+          ) : null}
         </>
       )}
 
@@ -76,7 +72,7 @@ export function App() {
 }
 
 function PaneBadge({ side, label, colorRole }: { side: "left" | "right"; label: string; colorRole: "a" | "b" }) {
-  const style = side === "left" ? { left: 16 } : { right: 16 };
+  const style = side === "left" ? { left: 16 } : { left: "calc(50% + 16px)" };
   return (
     <div className="pane-badge glass" style={style}>
       <span className="dotsq" style={{ background: colorRole === "a" ? "var(--algo-a)" : "var(--algo-b)" }} />

@@ -71,6 +71,11 @@ export interface Graph {
   /** Projected polyline per edge ([x0,y0,x1,y1,...]) or null for a straight segment. */
   geom: (Float64Array | null)[];
 
+  // Reverse (transpose) CSR — in-edges per node — for bidirectional search.
+  rhead: Int32Array; // length nodeCount + 1
+  rto: Int32Array; // source node of each in-edge
+  rEdge: Int32Array; // original forward edge id for each in-edge
+
   meta: RawGraph["meta"];
   features: ProjectedFeatures;
   /** Projection origin (lon/lat) and metres-per-degree, for screen<->world maths. */
