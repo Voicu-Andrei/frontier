@@ -66,7 +66,9 @@ export interface Graph {
   head: Int32Array; // length nodeCount + 1
   to: Int32Array; // length edgeCount
   len_m: Float64Array; // length edgeCount
-  time_s: Float64Array; // length edgeCount
+  time_s: Float64Array; // free-flow travel time, length edgeCount
+  /** Effective travel time under the current traffic model (set by the app). */
+  effTime?: Float64Array;
   klass: Uint8Array; // length edgeCount
   /** Projected polyline per edge ([x0,y0,x1,y1,...]) or null for a straight segment. */
   geom: (Float64Array | null)[];

@@ -6,7 +6,7 @@ import { isochrone } from "../engine/isochrone";
 import { bidirectional, reconstructBidir } from "../engine/bidirectional";
 import { multiSourceDijkstra, reconstructToSource } from "../engine/multisource";
 import { multiStopRoute } from "../engine/multistop";
-import { yenKShortest } from "../engine/yen";
+import { penaltyAlternatives } from "../engine/yen";
 import { containment } from "../engine/containment";
 
 export type Mode = "p2p" | "bidir" | "race" | "iso" | "multi" | "dispatch" | "alt" | "cut";
@@ -235,7 +235,7 @@ function buildBidir(g: Graph, p: SceneParams): Scene {
     frontierCount: fwd.count,
     frontierB: bwd.buf,
     frontierBCount: bwd.count,
-    routes: route.length ? [{ poly: route, revealAt: meetProgress, rank: 0, revealSpan: 0.07 }] : [],
+    routes: route.length ? [{ poly: route, revealAt: meetProgress, rank: 0, revealSpan: 0.04 }] : [],
   };
   const markers: MarkerSpec[] = [marker(g, p.source, "start"), marker(g, p.target, "end")];
   if (r.meet >= 0) markers.push(marker(g, r.meet, "meet", undefined, meetProgress));
@@ -331,11 +331,22 @@ function buildMulti(g: Graph, p: SceneParams): Scene {
   const ms = multiStopRoute(g, p.stops, p.weight);
   const markers: MarkerSpec[] = ms.order.map((node, i) => marker(g, node, i === 0 ? "start" : "stop", i === 0 ? "S" : String(i)));
   const legAvg = ms.legs.length ? ms.distance_m / ms.legs.length : 0;
+  // combined A* exploration across all legs — the "generation" the search did
+  const segs: number[] = [];
+  for (const r of ms.legResults) {
+    for (let i = 0; i < r.settledCount; i++) {
+      const v = r.order[i];
+      const u = r.prev[v];
+      if (u < 0) continue;
+      segs.push(g.mx[u], g.my[u], g.mx[v], g.my[v]);
+    }
+  }
+  const frontier = Float64Array.from(segs);
   return {
     mode: "multi",
-    panes: [{ label: "A★", colorRole: "a", frontier: new Float64Array(0), frontierCount: 0, routes: lines([ms.polyline]) }],
+    panes: [{ label: "A★", colorRole: "a", frontier, frontierCount: frontier.length / 4, routes: lines([ms.polyline]) }],
     markers,
-    totalSteps: Math.max(2, ms.polyline.length / 2),
+    totalSteps: Math.max(2, frontier.length / 4),
     algoLabel: "TSP · NEAREST-NEIGHBOUR",
     hud: [
       { label: "STOPS", value: String(p.stops.length), unit: "" },
@@ -420,7 +431,7 @@ function buildDispatch(g: Graph, p: SceneParams): Scene {
 
 function buildAlt(g: Graph, p: SceneParams): Scene {
   const K = 3;
-  const paths = yenKShortest(g, p.source, p.target, K, p.weight);
+  const paths = penaltyAlternatives(g, p.source, p.target, K, p.weight);
   const markers = [marker(g, p.source, "start"), marker(g, p.target, "end")];
   if (paths.length === 0) {
     return {

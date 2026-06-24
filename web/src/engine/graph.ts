@@ -133,9 +133,24 @@ function projectFeatures(
   };
 }
 
-/** Pick the weight array for a search. */
+/** Pick the weight array for a search (effective time includes traffic if set). */
 export function weightArray(g: Graph, weight: "time" | "distance"): Float64Array {
-  return weight === "time" ? g.time_s : g.len_m;
+  return weight === "time" ? g.effTime ?? g.time_s : g.len_m;
+}
+
+/**
+ * Apply a simple traffic model: scale free-flow time by `1/speedFactor` (e.g.
+ * 0.65 for congestion) and add `nodeDelaySec` per edge for intersections /
+ * traffic lights. `speedFactor >= 1` with no delay clears it (free-flow).
+ */
+export function applyTraffic(g: Graph, speedFactor: number, nodeDelaySec: number): void {
+  if (speedFactor >= 1 && nodeDelaySec <= 0) {
+    g.effTime = undefined;
+    return;
+  }
+  const eff = new Float64Array(g.edgeCount);
+  for (let e = 0; e < g.edgeCount; e++) eff[e] = g.time_s[e] / speedFactor + nodeDelaySec;
+  g.effTime = eff;
 }
 
 /** Fetch a graph file and build it. */

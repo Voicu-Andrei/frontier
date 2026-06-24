@@ -73,14 +73,14 @@
 /* ---- THEME: CARBON (dark) ---- */
 [data-theme="carbon"] {
   --bg: #05070b;
-  --map-land: #0e131a;
-  --map-land-2: #11171f;
-  --map-water: #0b2233;
-  --map-park: #11251a;
-  --map-road-casing: #1a212c;
-  --map-road: #2c3744;
-  --map-road-minor: #1c242f;
-  --map-label: #586474;
+  --map-land: #121821;
+  --map-land-2: #141b25;
+  --map-water: #1b4f70;
+  --map-park: #1c4a2c;
+  --map-road-casing: #222c39;
+  --map-road: #3a4757;
+  --map-road-minor: #232d3a;
+  --map-label: #7a8699;
   --ink: #eef2f7;
   --ink-muted: #98a4b4;
   --ink-faint: #5c6677;
@@ -113,12 +113,12 @@
   --bg: #070c18;
   --map-land: #0f1830;
   --map-land-2: #13203c;
-  --map-water: #0b1730;
-  --map-park: #10283a;
+  --map-water: #163a66;
+  --map-park: #15506a;
   --map-road-casing: #1b2c4c;
-  --map-road: #33518a;
-  --map-road-minor: #21345b;
-  --map-label: #5e6f99;
+  --map-road: #44619c;
+  --map-road-minor: #25395f;
+  --map-label: #7286b3;
   --ink: #eaf0ff;
   --ink-muted: #9fb0d4;
   --ink-faint: #5e6e96;

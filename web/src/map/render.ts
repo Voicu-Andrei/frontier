@@ -35,6 +35,16 @@ export function renderBase(ctx: CanvasRenderingContext2D, g: Graph, palette: Pal
   ctx.fillStyle = palette.mapLand;
   ctx.fillRect(0, 0, vp.width, vp.height);
 
+  // water + parks, with a faint edge so they read as shapes, not flat blobs
+  const edge = (rings: Float64Array[], width: number) => {
+    ctx.lineWidth = width;
+    ctx.strokeStyle = "rgba(255,255,255,0.06)";
+    for (const r of rings) {
+      poly(ctx, vp, r);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  };
   for (const w of g.features.water) fillRing(ctx, vp, w, palette.mapWater);
   for (const pk of g.features.parks) fillRing(ctx, vp, pk, palette.mapPark);
   ctx.lineCap = "round";
@@ -42,9 +52,11 @@ export function renderBase(ctx: CanvasRenderingContext2D, g: Graph, palette: Pal
   for (const r of g.features.rivers) {
     poly(ctx, vp, r.pts);
     ctx.strokeStyle = palette.mapWater;
-    ctx.lineWidth = Math.max(2, r.width_m * vp.scale);
+    ctx.lineWidth = Math.max(3, r.width_m * vp.scale);
     ctx.stroke();
   }
+  edge(g.features.water, 1);
+  edge(g.features.parks, 1);
 
   const widthScale = 0.7 + 0.55 * Math.sqrt(vp.zoom);
   drawRoadPass(ctx, g, vp, widthScale, true, palette);
@@ -346,7 +358,15 @@ export function renderMarkers(ctx: CanvasRenderingContext2D, palette: Palette, v
         ring(ctx, x, y, 7, palette.end, 3);
         break;
       case "meet": {
-        // where the two bidirectional searches collided
+        // where the two bidirectional searches collided — pulse to draw the eye
+        const tt = (timeMs % 1600) / 1600;
+        ctx.globalAlpha = Math.max(0, 0.7 - tt * 0.7);
+        ctx.strokeStyle = palette.frontierWave2;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(x, y, 8 + tt * 18, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(Math.PI / 4);
@@ -354,7 +374,7 @@ export function renderMarkers(ctx: CanvasRenderingContext2D, palette: Palette, v
         ctx.strokeStyle = "#fff";
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.rect(-6, -6, 12, 12);
+        ctx.rect(-6.5, -6.5, 13, 13);
         ctx.fill();
         ctx.stroke();
         ctx.restore();

@@ -70,6 +70,30 @@ function restrictedShortestPath(
 const sameNodes = (a: number[], b: number[]) => a.length === b.length && a.every((v, i) => v === b[i]);
 
 /**
+ * Alternative routes via the PENALTY method: find the shortest path, multiply the
+ * weight of every road it used, then search again — the next route is forced to
+ * detour around the busy ones. Unlike the exact k-shortest paths (which are often
+ * near-identical), this yields genuinely DISTINCT alternatives, the way consumer
+ * routers present them. Costs are reported in the true (unpenalised) weight.
+ */
+export function penaltyAlternatives(g: Graph, s: number, t: number, K: number, weight: Weight = "time", penalty = 3.2): KPath[] {
+  const real = weightArray(g, weight);
+  const w = Float64Array.from(real);
+  const out: KPath[] = [];
+  const empty = new Set<number>();
+  for (let i = 0; i < K; i++) {
+    const p = restrictedShortestPath(g, w, s, t, empty, empty);
+    if (!p) break;
+    if (out.some((q) => sameNodes(q.nodes, p.nodes))) break;
+    let cost = 0;
+    for (const e of p.edges) cost += real[e];
+    out.push({ nodes: p.nodes, edges: p.edges, cost });
+    for (const e of p.edges) w[e] *= penalty;
+  }
+  return out;
+}
+
+/**
  * Yen's algorithm — the k shortest LOOPLESS paths from s to t, in non-decreasing
  * cost order. After the shortest path, each next candidate is found by "spurring"
  * off every node of the previous path: temporarily ban the edges already used by

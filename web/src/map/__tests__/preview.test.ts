@@ -17,9 +17,9 @@ import type { Palette } from "../../theme/themes";
 import type { RawGraph } from "../../engine/types";
 
 const PALETTES: Record<string, Palette> = {
-  carbon: p("#0e131a", "#0b2233", "#11251a", "#1a212c", "#2c3744", "#1c242f", "#2b8bff", "#1ff0d6", "#05070b", "rgba(124,92,255,0.20)", "rgba(236,72,153,0.92)", "rgba(250,204,21,1)", "#22c55e", "#fb5246", "#2b8bff", "#061018", "#2b8bff", "#a78bfa", "#eef2f7", "#5c6677", "rgba(255,255,255,0.10)"),
-  paper: p("#f3f1ec", "#c6dcef", "#d7e7cd", "#e3e0d7", "#ffffff", "#f7f5ef", "#1a73e8", "#00c2d6", "#ffffff", "rgba(123,58,237,0.30)", "rgba(214,64,159,0.92)", "rgba(245,135,12,1)", "#16a34a", "#ea4335", "#1a73e8", "#ffffff", "#1a73e8", "#9333ea", "#1b1d22", "#9aa0aa", "rgba(20,22,28,0.10)"),
-  blueprint: p("#0f1830", "#0b1730", "#10283a", "#1b2c4c", "#33518a", "#21345b", "#22d3ee", "#38bdf8", "#070c18", "rgba(56,189,248,0.16)", "rgba(244,114,182,0.92)", "rgba(250,204,21,1)", "#34d399", "#fb7185", "#22d3ee", "#06121f", "#22d3ee", "#f472b6", "#eaf0ff", "#5e6e96", "rgba(120,160,255,0.16)"),
+  carbon: p("#121821", "#1b4f70", "#1c4a2c", "#222c39", "#3a4757", "#232d3a", "#2b8bff", "#1ff0d6", "#05070b", "rgba(124,92,255,0.20)", "rgba(236,72,153,0.92)", "rgba(250,204,21,1)", "#22c55e", "#fb5246", "#2b8bff", "#061018", "#2b8bff", "#a78bfa", "#eef2f7", "#5c6677", "rgba(255,255,255,0.10)"),
+  paper: p("#e4e0d6", "#aaccea", "#cbe0bd", "#c2bcab", "#ffffff", "#f1ede3", "#1a73e8", "#00c2d6", "#ffffff", "rgba(123,58,237,0.30)", "rgba(214,64,159,0.92)", "rgba(245,135,12,1)", "#16a34a", "#ea4335", "#1a73e8", "#ffffff", "#1a73e8", "#9333ea", "#1b1d22", "#9aa0aa", "rgba(20,22,28,0.10)"),
+  blueprint: p("#0f1830", "#163a66", "#15506a", "#1b2c4c", "#44619c", "#25395f", "#22d3ee", "#38bdf8", "#070c18", "rgba(56,189,248,0.16)", "rgba(244,114,182,0.92)", "rgba(250,204,21,1)", "#34d399", "#fb7185", "#22d3ee", "#06121f", "#22d3ee", "#f472b6", "#eaf0ff", "#5e6e96", "rgba(120,160,255,0.16)"),
 };
 
 function p(mapLand: string, mapWater: string, mapPark: string, roadCasing: string, road: string, roadMinor: string, routeA: string, routeB: string, routeCasing: string, frontierSettle: string, frontierWave1: string, frontierWave2: string, start: string, end: string, accent: string, accentInk: string, algoA: string, algoB: string, ink: string, inkFaint: string, hairline: string): Palette {

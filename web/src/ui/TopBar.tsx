@@ -18,10 +18,12 @@ export function TopBar() {
   const mode = useStore((s) => s.mode);
   const theme = useStore((s) => s.theme);
   const weight = useStore((s) => s.weight);
+  const traffic = useStore((s) => s.traffic);
   const infoOpen = useStore((s) => s.infoOpen);
   const setMode = useStore((s) => s.setMode);
   const setTheme = useStore((s) => s.setTheme);
   const setWeight = useStore((s) => s.setWeight);
+  const setTraffic = useStore((s) => s.setTraffic);
   const toggleInfo = useStore((s) => s.toggleInfo);
 
   return (
@@ -56,6 +58,21 @@ export function TopBar() {
           onClick={() => setWeight("distance")}
         >
           DIST
+        </button>
+      </div>
+
+      <div className="pillgroup" title="Free-flow vs typical traffic (congestion + intersection delays)">
+        <button
+          className={`pill pill-sm${traffic === "free" ? " active" : ""}`}
+          onClick={() => setTraffic("free")}
+        >
+          FREE
+        </button>
+        <button
+          className={`pill pill-sm${traffic === "typical" ? " active" : ""}`}
+          onClick={() => setTraffic("typical")}
+        >
+          TRAFFIC
         </button>
       </div>
 

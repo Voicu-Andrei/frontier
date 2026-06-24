@@ -82,7 +82,10 @@ export function MapCanvas() {
       last = now;
       const st = useStore.getState();
       if (st.playing && st.scene) {
-        let p = st.progress + dt / (st.speedSec * 1000);
+        // constant nodes-per-second: short queries finish fast, long ones take
+        // longer, and the scrubber fills to match the actual work done
+        const total = Math.max(1, st.scene.totalSteps);
+        let p = st.progress + (st.speed / total) * (dt / 1000);
         if (p >= 1) p = 0;
         st.setProgress(p);
       }

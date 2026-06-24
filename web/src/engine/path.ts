@@ -61,10 +61,11 @@ export function pathPolyline(g: Graph, path: Path): Float64Array {
 export function pathStats(g: Graph, path: Path): PathStats {
   let distance_m = 0;
   let time_s = 0;
+  const t = g.effTime ?? g.time_s; // ETA reflects the active traffic model
   for (const e of path.edges) {
     if (e < 0) continue;
     distance_m += g.len_m[e];
-    time_s += g.time_s[e];
+    time_s += t[e];
   }
 
   // Turns: angle between consecutive node-to-node chords at each interior node.

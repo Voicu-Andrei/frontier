@@ -154,17 +154,17 @@ const INFO: Record<Mode, Info> = {
   },
   alt: {
     title: "Alternative routes",
-    algo: "Yen's k-shortest paths",
-    complexity: "O(K · V · (E + V log V))",
+    algo: "Penalty method (k routes)",
+    complexity: "O(K · (E + V log V))",
     sections: [
       {
         heading: "MORE THAN ONE GOOD WAY",
-        body: "There's rarely a single sensible route — usually a few are within a minute or two of each other. Alt finds the k shortest DISTINCT paths so you can pick by preference, avoid a road, or have a backup.",
+        body: "There's rarely a single sensible route — usually a few are within a minute or two. Alt offers genuinely distinct options so you can pick by preference, avoid a road, or keep a backup.",
         diagram: "altroutes",
       },
       {
-        heading: "HOW — SPUR OFF THE BEST",
-        body: "Take the shortest path. Then, at each node along it, force a detour: temporarily ban the edges the known paths already used there and re-route to the destination. Each detour is a candidate; the cheapest unused one becomes the next route. Repeat until you have k.",
+        heading: "HOW — MAKE BUSY ROADS COSTLY",
+        body: "Find the best route. Then multiply the cost of every road it used and search again — now the cheapest path is forced to detour around them. Repeat for each alternative. (The exact k-shortest-paths algorithm, Yen's, is also implemented; the penalty method just gives more visibly different routes, like consumer maps do.)",
         diagram: "spur",
       },
     ],

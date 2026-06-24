@@ -7,7 +7,7 @@ export function Scrubber() {
   const scene = useStore((s) => s.scene);
   const progress = useStore((s) => s.progress);
   const playing = useStore((s) => s.playing);
-  const speedSec = useStore((s) => s.speedSec);
+  const speed = useStore((s) => s.speed);
   const togglePlay = useStore((s) => s.togglePlay);
   const setProgress = useStore((s) => s.setProgress);
   const setPlaying = useStore((s) => s.setPlaying);
@@ -64,9 +64,9 @@ export function Scrubber() {
         <div className="speed-pills">
           {SPEED_PRESETS.map((p) => (
             <button
-              key={p.sec}
-              className={`speed-pill${speedSec === p.sec ? " active" : ""}`}
-              onClick={() => setSpeed(p.sec)}
+              key={p.steps}
+              className={`speed-pill${speed === p.steps ? " active" : ""}`}
+              onClick={() => setSpeed(p.steps)}
             >
               {p.label}
             </button>

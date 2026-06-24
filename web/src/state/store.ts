@@ -1,12 +1,13 @@
 import { create } from "zustand";
 import type { Graph, Weight } from "../engine/types";
-import { loadGraphFirst } from "../engine/graph";
+import { loadGraphFirst, applyTraffic } from "../engine/graph";
 import { KDTree } from "../engine/kdtree";
 import { buildScene, type Mode, type Scene, type SceneParams } from "./scene";
 import type { ThemeId } from "../theme/themes";
-import { DEFAULT_SWEEP_SECONDS } from "../config";
+import { DEFAULT_STEPS_PER_SEC, TRAFFIC_FACTOR, TRAFFIC_NODE_DELAY_S } from "../config";
 
 export type Placing = "unit" | "call";
+export type Traffic = "free" | "typical";
 
 interface State {
   status: "loading" | "ready" | "error";
@@ -23,7 +24,8 @@ interface State {
 
   progress: number;
   playing: boolean;
-  speedSec: number; // seconds for a full animation sweep (lower = faster)
+  speed: number; // animation rate in settled-nodes per second
+  traffic: Traffic;
   nextClick: "start" | "end";
   placing: Placing; // dispatch: what a click drops
   infoOpen: boolean;
@@ -35,7 +37,8 @@ interface State {
   setProgress: (p: number) => void;
   setPlaying: (p: boolean) => void;
   togglePlay: () => void;
-  setSpeed: (sec: number) => void;
+  setSpeed: (stepsPerSec: number) => void;
+  setTraffic: (t: Traffic) => void;
   toggleInfo: () => void;
   setIsoBudget: (min: number) => void;
   setCutBudget: (min: number) => void;
@@ -108,7 +111,8 @@ export const useStore = create<State>((set, get) => {
     scene: null,
     progress: 0,
     playing: true,
-    speedSec: DEFAULT_SWEEP_SECONDS,
+    speed: DEFAULT_STEPS_PER_SEC,
+    traffic: "typical",
     nextClick: "start",
     placing: "call",
     infoOpen: false,
@@ -117,6 +121,7 @@ export const useStore = create<State>((set, get) => {
       try {
         const graph = await loadGraphFirst(urls);
         const kdtree = new KDTree(graph);
+        if (get().traffic === "typical") applyTraffic(graph, TRAFFIC_FACTOR, TRAFFIC_NODE_DELAY_S);
         const params = defaultParams(graph, kdtree, get().mode, get().weight);
         set({ status: "ready", graph, kdtree });
         commit(params);
@@ -139,7 +144,15 @@ export const useStore = create<State>((set, get) => {
     setProgress: (progress) => set({ progress }),
     setPlaying: (playing) => set({ playing }),
     togglePlay: () => set((s) => ({ playing: !s.playing })),
-    setSpeed: (speedSec) => set({ speedSec }),
+    setSpeed: (speed) => set({ speed }),
+    setTraffic(traffic) {
+      const { graph, params } = get();
+      set({ traffic });
+      if (!graph) return;
+      if (traffic === "typical") applyTraffic(graph, TRAFFIC_FACTOR, TRAFFIC_NODE_DELAY_S);
+      else applyTraffic(graph, 1, 0);
+      commit({ ...params });
+    },
     toggleInfo: () => set((s) => ({ infoOpen: !s.infoOpen })),
 
     setIsoBudget(minutes) {

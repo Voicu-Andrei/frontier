@@ -1,4 +1,4 @@
-import type { Graph, Weight } from "./types";
+import type { Graph, SearchResult, Weight } from "./types";
 import { astar } from "./astar";
 import { reconstructPath, pathPolyline, type Path } from "./path";
 
@@ -10,6 +10,8 @@ export interface MultiStopRoute {
   distance_m: number;
   time_s: number;
   legs: Path[];
+  /** The A* search for each leg (for showing the exploration / "generation"). */
+  legResults: SearchResult[];
 }
 
 /**
@@ -49,23 +51,26 @@ export function multiStopRoute(g: Graph, stops: number[], weight: Weight = "time
 
   // stitch real paths between consecutive stops
   const legs: Path[] = [];
+  const legResults: SearchResult[] = [];
   const poly: number[] = [];
+  const t = g.effTime ?? g.time_s;
   let distance_m = 0;
   let time_s = 0;
   for (let i = 0; i < order.length - 1; i++) {
     const s = stops[order[i]];
-    const t = stops[order[i + 1]];
-    const r = astar(g, s, t, { weight });
-    const path = reconstructPath(r, s, t);
+    const tgt = stops[order[i + 1]];
+    const r = astar(g, s, tgt, { weight });
+    const path = reconstructPath(r, s, tgt);
     if (!path) continue;
     legs.push(path);
+    legResults.push(r);
     const line = pathPolyline(g, path);
     const start = i === 0 ? 0 : 2; // skip duplicated joint vertex
     for (let p = start; p < line.length; p += 2) poly.push(line[p], line[p + 1]);
     for (const e of path.edges) {
       if (e < 0) continue;
       distance_m += g.len_m[e];
-      time_s += g.time_s[e];
+      time_s += t[e];
     }
   }
 
@@ -75,5 +80,6 @@ export function multiStopRoute(g: Graph, stops: number[], weight: Weight = "time
     distance_m,
     time_s,
     legs,
+    legResults,
   };
 }

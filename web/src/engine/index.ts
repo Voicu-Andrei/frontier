@@ -1,6 +1,6 @@
 // Public engine API — the implemented-from-scratch routing core.
 export * from "./types";
-export { buildGraph, loadGraph, weightArray } from "./graph";
+export { buildGraph, loadGraph, weightArray, applyTraffic } from "./graph";
 export { MinHeap } from "./heap";
 export { KDTree } from "./kdtree";
 export { dijkstra } from "./dijkstra";
@@ -22,7 +22,7 @@ export {
 } from "./query";
 export { isochrone, type Isochrone } from "./isochrone";
 export { concaveHull, type ConcaveHull } from "./hull";
-export { yenKShortest, type KPath } from "./yen";
+export { yenKShortest, penaltyAlternatives, type KPath } from "./yen";
 export { MaxFlow, FLOW_INF } from "./maxflow";
 export { containment, type Containment } from "./containment";
 export { bidirectional, reconstructBidir, type BidirResult } from "./bidirectional";
