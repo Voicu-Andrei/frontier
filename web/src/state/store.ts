@@ -4,7 +4,7 @@ import { loadGraphFirst, applyTraffic } from "../engine/graph";
 import { KDTree } from "../engine/kdtree";
 import { buildScene, type Mode, type Scene, type SceneParams } from "./scene";
 import type { ThemeId } from "../theme/themes";
-import { DEFAULT_STEPS_PER_SEC, TRAFFIC_FACTOR, TRAFFIC_NODE_DELAY_S } from "../config";
+import { DEFAULT_SPEED, TRAFFIC_FACTOR, TRAFFIC_NODE_DELAY_S } from "../config";
 
 export type Placing = "unit" | "call";
 export type Traffic = "free" | "typical";
@@ -24,7 +24,7 @@ interface State {
 
   progress: number;
   playing: boolean;
-  speed: number; // animation rate in settled-nodes per second
+  speed: number; // animation speed multiplier
   traffic: Traffic;
   nextClick: "start" | "end";
   placing: Placing; // dispatch: what a click drops
@@ -111,7 +111,7 @@ export const useStore = create<State>((set, get) => {
     scene: null,
     progress: 0,
     playing: true,
-    speed: DEFAULT_STEPS_PER_SEC,
+    speed: DEFAULT_SPEED,
     traffic: "typical",
     nextClick: "start",
     placing: "call",
@@ -143,7 +143,9 @@ export const useStore = create<State>((set, get) => {
     },
     setProgress: (progress) => set({ progress }),
     setPlaying: (playing) => set({ playing }),
-    togglePlay: () => set((s) => ({ playing: !s.playing })),
+    // play once and hold at the end; pressing play at the end replays from 0
+    togglePlay: () =>
+      set((s) => (!s.playing && s.progress >= 0.999 ? { playing: true, progress: 0 } : { playing: !s.playing })),
     setSpeed: (speed) => set({ speed }),
     setTraffic(traffic) {
       const { graph, params } = get();

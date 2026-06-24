@@ -41,6 +41,8 @@ export interface Pane {
   frontierBCount?: number;
   /** Owning source index per frontier segment (dispatch territories). */
   frontierUnit?: Int32Array;
+  /** Progress fraction over which the frontier finishes growing (default 1). */
+  frontierSpan?: number;
   /** Polylines to reveal with progress (route legs, dispatch assignments). */
   routes: RouteLine[];
 }
@@ -144,18 +146,6 @@ function settleProgress(order: Int32Array, count: number, node: number): number 
   return 1;
 }
 
-/**
- * Fraction of the trace settled by the time a given cost threshold is reached.
- * Since Dijkstra settles in increasing-cost order, this is exactly when the
- * animated frontier has grown out to that cost — accurate reveal timing even for
- * nodes that aren't themselves in this search's settle order.
- */
-function costProgress(order: Int32Array, dist: Float64Array, count: number, threshold: number): number {
-  let i = 0;
-  while (i < count && dist[order[i]] <= threshold) i++;
-  return i / Math.max(1, count);
-}
-
 function pane(g: Graph, r: SearchResult, label: string, colorRole: "a" | "b", routes: Float64Array[]): Pane {
   const f = frontierSegs(g, r);
   return { label, colorRole, frontier: f.buf, frontierCount: f.count, routes: lines(routes) };
@@ -217,17 +207,10 @@ function buildBidir(g: Graph, p: SceneParams): Scene {
 
   const fwd = frontierFrom(g, r.orderF, r.prevF, r.settledF);
   const bwd = frontierFrom(g, r.orderB, r.prevB, r.settledB);
-  // The meeting point is DISCOVERED during the search, not known up front. Both
-  // frontiers settle in increasing cost, so they visually touch the meet node
-  // once each has grown out to its half of the meeting cost. Once that happens
-  // the whole path is known, so the route snaps in fast rather than crawling.
-  const meetProgress =
-    r.meet >= 0
-      ? Math.max(
-          costProgress(r.orderF, r.distF, r.settledF, r.distF[r.meet]),
-          costProgress(r.orderB, r.distB, r.settledB, r.distB[r.meet]),
-        )
-      : 1;
+  // Two clear phases: both frontiers grow over [0, MEET]; at MEET the contact
+  // point is pinned; then the stitched route is "driven" over [MEET, 1] and held
+  // at the end (the loop no longer resets the bar).
+  const MEET = 0.6;
   const thePane: Pane = {
     label: "BIDIRECTIONAL",
     colorRole: "a",
@@ -235,10 +218,11 @@ function buildBidir(g: Graph, p: SceneParams): Scene {
     frontierCount: fwd.count,
     frontierB: bwd.buf,
     frontierBCount: bwd.count,
-    routes: route.length ? [{ poly: route, revealAt: meetProgress, rank: 0, revealSpan: 0.04 }] : [],
+    frontierSpan: MEET,
+    routes: route.length ? [{ poly: route, revealAt: MEET, rank: 0, revealSpan: 1 - MEET }] : [],
   };
   const markers: MarkerSpec[] = [marker(g, p.source, "start"), marker(g, p.target, "end")];
-  if (r.meet >= 0) markers.push(marker(g, r.meet, "meet", undefined, meetProgress));
+  if (r.meet >= 0) markers.push(marker(g, r.meet, "meet", undefined, MEET));
 
   const savings = dij.settledCount > 0 ? (1 - totalNodes / dij.settledCount) * 100 : 0;
   return {

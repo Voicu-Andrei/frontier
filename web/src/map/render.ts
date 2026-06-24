@@ -106,9 +106,13 @@ export function renderOverlay(
   } else if (scene.cut) {
     drawCut(ctx, palette, vp, scene.cut);
   } else if (paneObj) {
-    drawFrontier(ctx, palette, vp, paneObj.frontier, paneObj.frontierCount, progress, "warm", paneObj.frontierUnit);
+    // frontier may finish growing before the end of the bar (bidir reserves the
+    // tail for drawing the route), so remap progress into its growth window
+    const fspan = paneObj.frontierSpan ?? 1;
+    const fp = fspan >= 1 ? progress : Math.min(1, progress / fspan);
+    drawFrontier(ctx, palette, vp, paneObj.frontier, paneObj.frontierCount, fp, "warm", paneObj.frontierUnit);
     if (paneObj.frontierB) {
-      drawFrontier(ctx, palette, vp, paneObj.frontierB, paneObj.frontierBCount ?? 0, progress, "cool");
+      drawFrontier(ctx, palette, vp, paneObj.frontierB, paneObj.frontierBCount ?? 0, fp, "cool");
     }
   }
 

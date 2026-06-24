@@ -59,36 +59,64 @@ def overpass(query: str, retries: int = 3) -> dict:
     raise SystemExit("Overpass request failed after retries (are you online?)")
 
 
+def _rings(el) -> list:
+    """Outer ring(s) of a way or relation (big parks/lakes are multipolygons)."""
+    out = []
+    if el["type"] == "way" and el.get("geometry"):
+        out.append(el["geometry"])
+    elif el["type"] == "relation":
+        for m in el.get("members", []):
+            if m.get("type") == "way" and m.get("geometry") and m.get("role") in ("outer", "", None):
+                out.append(m["geometry"])
+    return out
+
+
 def fetch_features(bbox) -> dict:
-    """Fetch water + parks polygons for the basemap (rendering only)."""
+    """Water + green polygons + river lines for the basemap (rendering only).
+
+    Crucially queries BOTH ways and relations — most large parks (Englischer
+    Garten) and water bodies are multipolygon relations — plus waterway lines for
+    the Isar/canals. Without the relations you get an almost empty map.
+    """
     s, w, n, e = bbox
-    query = (
-        f"[out:json][timeout:120];("
-        f'way["natural"="water"]({s},{w},{n},{e});'
-        f'way["waterway"="riverbank"]({s},{w},{n},{e});'
-        f'way["leisure"="park"]({s},{w},{n},{e});'
-        f'way["landuse"~"^(forest|grass|meadow|recreation_ground|village_green)$"]({s},{w},{n},{e});'
-        f'way["natural"="wood"]({s},{w},{n},{e});'
+    water, parks, rivers = [], [], []
+
+    area_q = (
+        f"[out:json][timeout:180];("
+        f'way["natural"="water"]({s},{w},{n},{e});rel["natural"="water"]({s},{w},{n},{e});'
+        f'way["leisure"~"^(park|garden|nature_reserve|golf_course)$"]({s},{w},{n},{e});'
+        f'rel["leisure"~"^(park|garden|nature_reserve|golf_course)$"]({s},{w},{n},{e});'
+        f'way["landuse"~"^(forest|grass|meadow|recreation_ground|village_green|cemetery)$"]({s},{w},{n},{e});'
+        f'rel["landuse"~"^(forest|grass|meadow|recreation_ground|village_green|cemetery)$"]({s},{w},{n},{e});'
+        f'way["natural"="wood"]({s},{w},{n},{e});rel["natural"="wood"]({s},{w},{n},{e});'
         f");out geom;"
     )
-    water, parks = [], []
     try:
-        print("querying Overpass for water + parks …")
-        res = overpass(query)
-        for el in res.get("elements", []):
-            geom = el.get("geometry")
-            if not geom or len(geom) < 4:
-                continue
-            ring = [[round(p["lon"], 6), round(p["lat"], 6)] for p in geom]
+        print("querying Overpass for water + green (ways + relations) …")
+        for el in overpass(area_q).get("elements", []):
             tags = el.get("tags", {})
-            if tags.get("natural") == "water" or tags.get("waterway") == "riverbank":
-                water.append(ring)
-            else:
-                parks.append(ring)
-    except Exception as ex:  # features are optional; never block the road export
-        print(f"  (features skipped: {ex})")
-    print(f"  water polys: {len(water)}  park polys: {len(parks)}")
-    return {"water": water, "parks": parks, "rivers": []}
+            is_water = tags.get("natural") == "water" or "water" in tags
+            for ring in _rings(el):
+                if len(ring) < 4:
+                    continue
+                poly = [[round(pt["lon"], 6), round(pt["lat"], 6)] for pt in ring]
+                (water if is_water else parks).append(poly)
+    except Exception as ex:
+        print(f"  (areas skipped: {ex})")
+
+    river_q = f'[out:json][timeout:120];(way["waterway"~"^(river|canal)$"]({s},{w},{n},{e}););out geom;'
+    try:
+        print("querying Overpass for rivers …")
+        for el in overpass(river_q).get("elements", []):
+            if el.get("geometry") and len(el["geometry"]) >= 2:
+                pts = [[round(pt["lon"], 6), round(pt["lat"], 6)] for pt in el["geometry"]]
+                wtype = el.get("tags", {}).get("waterway")
+                rivers.append({"pts": pts, "width_m": 38 if wtype == "river" else 14})
+    except Exception as ex:
+        print(f"  (rivers skipped: {ex})")
+
+    print(f"  water polys: {len(water)}  green polys: {len(parks)}  rivers: {len(rivers)}")
+    return {"water": water, "parks": parks, "rivers": rivers}
 
 
 def parse_speed(tags: dict, default_kmh: int) -> float:

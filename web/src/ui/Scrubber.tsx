@@ -64,9 +64,9 @@ export function Scrubber() {
         <div className="speed-pills">
           {SPEED_PRESETS.map((p) => (
             <button
-              key={p.steps}
-              className={`speed-pill${speed === p.steps ? " active" : ""}`}
-              onClick={() => setSpeed(p.steps)}
+              key={p.mult}
+              className={`speed-pill${speed === p.mult ? " active" : ""}`}
+              onClick={() => setSpeed(p.mult)}
             >
               {p.label}
             </button>

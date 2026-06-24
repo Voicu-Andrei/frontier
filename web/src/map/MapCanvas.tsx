@@ -3,6 +3,7 @@ import { useStore } from "../state/store";
 import { Viewport } from "./projection";
 import { renderBase, renderOverlay } from "./render";
 import { readPalette, type Palette } from "../theme/themes";
+import { ANIM_REF_STEPS_PER_SEC, ANIM_MIN_SEC, ANIM_MAX_SEC } from "../config";
 
 interface Panel {
   x: number;
@@ -82,11 +83,16 @@ export function MapCanvas() {
       last = now;
       const st = useStore.getState();
       if (st.playing && st.scene) {
-        // constant nodes-per-second: short queries finish fast, long ones take
-        // longer, and the scrubber fills to match the actual work done
+        // duration scales with work done but is clamped to a watchable band,
+        // then divided by the speed multiplier
         const total = Math.max(1, st.scene.totalSteps);
-        let p = st.progress + (st.speed / total) * (dt / 1000);
-        if (p >= 1) p = 0;
+        const base = Math.min(ANIM_MAX_SEC, Math.max(ANIM_MIN_SEC, total / ANIM_REF_STEPS_PER_SEC));
+        const dur = base / st.speed;
+        let p = st.progress + dt / (dur * 1000);
+        if (p >= 1) {
+          p = 1;
+          st.setPlaying(false); // hold at the end instead of resetting
+        }
         st.setProgress(p);
       }
       paint(now);
