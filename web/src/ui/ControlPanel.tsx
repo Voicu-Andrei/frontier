@@ -8,6 +8,7 @@ export function ControlPanel() {
   const params = useStore((s) => s.params);
   const placing = useStore((s) => s.placing);
   const setIsoBudget = useStore((s) => s.setIsoBudget);
+  const setCutBudget = useStore((s) => s.setCutBudget);
   const setPlacing = useStore((s) => s.setPlacing);
   const multiUndo = useStore((s) => s.multiUndo);
   const multiClear = useStore((s) => s.multiClear);
@@ -99,6 +100,37 @@ export function ControlPanel() {
             Clear calls
           </button>
         </div>
+      </div>
+    );
+  }
+
+  if (mode === "cut") {
+    const m = params.cutBudgetMin;
+    return (
+      <div className="controls glass">
+        <span className="cap">CONTAINMENT RADIUS</span>
+        <div className="ctl-row ctl-spread">
+          <button className="ctl-btn ctl-step" onClick={() => setCutBudget(Math.max(1, m - 1))}>−</button>
+          <span className="ctl-bignum">
+            {m}
+            <span style={{ fontSize: "var(--fs-cap)", color: "var(--ink-faint)" }}> min</span>
+          </span>
+          <button className="ctl-btn ctl-step" onClick={() => setCutBudget(Math.min(12, m + 1))}>+</button>
+        </div>
+        <div className="ctl-presets">
+          {[2, 3, 4, 6].map((p) => (
+            <button key={p} className={`ctl-preset${m === p ? " active" : ""}`} onClick={() => setCutBudget(p)}>
+              {p}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 2 }}>
+          <LegendRow color="var(--end)" label="roadblock (cut this road)" />
+          <LegendRow color="var(--end)" label="sealed-in region" />
+        </div>
+        <span style={{ fontSize: "var(--fs-micro)", color: "var(--ink-faint)", lineHeight: 1.4 }}>
+          Fewest roads to seal the zone from the map edge. Click to move the origin.
+        </span>
       </div>
     );
   }

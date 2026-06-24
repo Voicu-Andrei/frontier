@@ -7,8 +7,9 @@ import { bidirectional, reconstructBidir } from "../engine/bidirectional";
 import { multiSourceDijkstra, reconstructToSource } from "../engine/multisource";
 import { multiStopRoute } from "../engine/multistop";
 import { yenKShortest } from "../engine/yen";
+import { containment } from "../engine/containment";
 
-export type Mode = "p2p" | "bidir" | "race" | "iso" | "multi" | "dispatch" | "alt";
+export type Mode = "p2p" | "bidir" | "race" | "iso" | "multi" | "dispatch" | "alt" | "cut";
 
 export interface MarkerSpec {
   x: number;
@@ -25,6 +26,8 @@ export interface RouteLine {
   revealAt: number;
   /** 0 = primary route (gradient); >0 = alternative (distinct solid colour). */
   rank: number;
+  /** Progress window to draw over (default = the rest). Small = snaps in fast. */
+  revealSpan?: number;
 }
 
 export interface Pane {
@@ -36,8 +39,15 @@ export interface Pane {
   /** Optional second frontier (backward search in bidirectional mode). */
   frontierB?: Float64Array;
   frontierBCount?: number;
+  /** Owning source index per frontier segment (dispatch territories). */
+  frontierUnit?: Int32Array;
   /** Polylines to reveal with progress (route legs, dispatch assignments). */
   routes: RouteLine[];
+}
+
+export interface CutLayer {
+  hullRings: Float64Array[]; // sealed region boundary
+  cutLines: Float64Array[]; // [x0,y0,x1,y1] per road to cut
 }
 
 export interface IsoLayer {
@@ -68,6 +78,7 @@ export interface Scene {
   panes: Pane[];
   markers: MarkerSpec[];
   iso?: IsoLayer;
+  cut?: CutLayer;
   totalSteps: number;
   hud: HudRow[];
   algoLabel: string;
@@ -82,6 +93,7 @@ export interface SceneParams {
   source: number;
   target: number;
   isoBudgetMin: number;
+  cutBudgetMin: number;
   stops: number[];
   units: number[];
   jobs: number[];
@@ -132,6 +144,18 @@ function settleProgress(order: Int32Array, count: number, node: number): number 
   return 1;
 }
 
+/**
+ * Fraction of the trace settled by the time a given cost threshold is reached.
+ * Since Dijkstra settles in increasing-cost order, this is exactly when the
+ * animated frontier has grown out to that cost — accurate reveal timing even for
+ * nodes that aren't themselves in this search's settle order.
+ */
+function costProgress(order: Int32Array, dist: Float64Array, count: number, threshold: number): number {
+  let i = 0;
+  while (i < count && dist[order[i]] <= threshold) i++;
+  return i / Math.max(1, count);
+}
+
 function pane(g: Graph, r: SearchResult, label: string, colorRole: "a" | "b", routes: Float64Array[]): Pane {
   const f = frontierSegs(g, r);
   return { label, colorRole, frontier: f.buf, frontierCount: f.count, routes: lines(routes) };
@@ -151,6 +175,8 @@ export function buildScene(g: Graph, p: SceneParams): Scene {
       return buildDispatch(g, p);
     case "alt":
       return buildAlt(g, p);
+    case "cut":
+      return buildCut(g, p);
     default:
       return buildP2P(g, p);
   }
@@ -191,11 +217,16 @@ function buildBidir(g: Graph, p: SceneParams): Scene {
 
   const fwd = frontierFrom(g, r.orderF, r.prevF, r.settledF);
   const bwd = frontierFrom(g, r.orderB, r.prevB, r.settledB);
-  // The meeting point is DISCOVERED during the search, not known up front — so
-  // reveal it (and the stitched route) only once both frontiers have grown to it.
+  // The meeting point is DISCOVERED during the search, not known up front. Both
+  // frontiers settle in increasing cost, so they visually touch the meet node
+  // once each has grown out to its half of the meeting cost. Once that happens
+  // the whole path is known, so the route snaps in fast rather than crawling.
   const meetProgress =
     r.meet >= 0
-      ? Math.max(settleProgress(r.orderF, r.settledF, r.meet), settleProgress(r.orderB, r.settledB, r.meet))
+      ? Math.max(
+          costProgress(r.orderF, r.distF, r.settledF, r.distF[r.meet]),
+          costProgress(r.orderB, r.distB, r.settledB, r.distB[r.meet]),
+        )
       : 1;
   const thePane: Pane = {
     label: "BIDIRECTIONAL",
@@ -204,7 +235,7 @@ function buildBidir(g: Graph, p: SceneParams): Scene {
     frontierCount: fwd.count,
     frontierB: bwd.buf,
     frontierBCount: bwd.count,
-    routes: route.length ? [{ poly: route, revealAt: meetProgress, rank: 0 }] : [],
+    routes: route.length ? [{ poly: route, revealAt: meetProgress, rank: 0, revealSpan: 0.07 }] : [],
   };
   const markers: MarkerSpec[] = [marker(g, p.source, "start"), marker(g, p.target, "end")];
   if (r.meet >= 0) markers.push(marker(g, r.meet, "meet", undefined, meetProgress));
@@ -347,13 +378,32 @@ function buildDispatch(g: Graph, p: SceneParams): Scene {
     if (r.origin[job] >= 0) load[r.origin[job]]++;
     const poly: number[] = [];
     for (const node of chain.nodes) poly.push(g.mx[node], g.my[node]);
-    // a call is only "claimed" once the flood reaches it — reveal its line then
-    routes.push({ poly: Float64Array.from(poly), revealAt: settleProgress(r.order, r.settledCount, job), rank: 0 });
+    // a call is only "claimed" once the flood reaches it — reveal its line then,
+    // and snap it in fast (the path back to its unit is already known)
+    routes.push({ poly: Float64Array.from(poly), revealAt: settleProgress(r.order, r.settledCount, job), rank: 0, revealSpan: 0.05 });
   }
-  const f = frontierSegs(g, r);
+  // frontier coloured by OWNING unit, so the competing territories are visible
+  const segs: number[] = [];
+  const units: number[] = [];
+  for (let i = 0; i < r.settledCount; i++) {
+    const v = r.order[i];
+    const u = r.prev[v];
+    if (u < 0) continue;
+    segs.push(g.mx[u], g.my[u], g.mx[v], g.my[v]);
+    units.push(r.origin[v]);
+  }
   return {
     mode: "dispatch",
-    panes: [{ label: "MULTI-SOURCE", colorRole: "a", frontier: f.buf, frontierCount: f.count, routes }],
+    panes: [
+      {
+        label: "MULTI-SOURCE",
+        colorRole: "a",
+        frontier: Float64Array.from(segs),
+        frontierCount: units.length,
+        frontierUnit: Int32Array.from(units),
+        routes,
+      },
+    ],
     markers: [...p.units.map((u) => marker(g, u, "unit")), ...p.jobs.map((j) => marker(g, j, "job"))],
     totalSteps: r.settledCount,
     algoLabel: "MULTI-SOURCE · DISPATCH",
@@ -404,6 +454,39 @@ function buildAlt(g: Graph, p: SceneParams): Scene {
       { label: "BEST ETA", value: String(min(best.time_s)), unit: "min" },
       { label: "ALT 2 SLOWER", value: extra(1), unit: stats[1] ? "%" : "" },
       { label: "ALT 3 SLOWER", value: extra(2), unit: stats[2] ? "%" : "" },
+    ],
+  };
+}
+
+function buildCut(g: Graph, p: SceneParams): Scene {
+  const budget = p.cutBudgetMin * 60;
+  const c = containment(g, p.source, budget, 0.06);
+  const cutLines = c.cutPairs.map(([u, v]) => Float64Array.from([g.mx[u], g.my[u], g.mx[v], g.my[v]]));
+  const markers = [marker(g, p.source, "start")];
+  if (!c.feasible) {
+    return {
+      mode: "cut",
+      panes: [{ label: "MIN-CUT", colorRole: "a", frontier: new Float64Array(0), frontierCount: 0, routes: [] }],
+      markers,
+      totalSteps: 2,
+      algoLabel: "MIN-CUT · CONTAINMENT",
+      hud: [{ label: "STATUS", value: "—", unit: "" }],
+      notice: "Move the origin away from the map edge to contain it",
+    };
+  }
+  return {
+    mode: "cut",
+    panes: [{ label: "MIN-CUT", colorRole: "a", frontier: new Float64Array(0), frontierCount: 0, routes: [] }],
+    markers,
+    cut: { hullRings: c.hull, cutLines },
+    totalSteps: 2,
+    algoLabel: "MAX-FLOW · MIN-CUT",
+    hud: [
+      { label: "ROADBLOCKS", value: String(c.roadsCut), unit: "roads" },
+      { label: "CONTAINMENT", value: String(p.cutBudgetMin), unit: "min" },
+      { label: "SEALED AREA", value: c.areaKm2.toFixed(1), unit: "km²" },
+      { label: "SEALED NODES", value: fmt(c.containedCount), unit: "" },
+      { label: "ZONE NODES", value: fmt(c.zoneCount), unit: "" },
     ],
   };
 }

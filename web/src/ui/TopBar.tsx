@@ -11,6 +11,7 @@ const MODES: { id: Mode; label: string }[] = [
   { id: "iso", label: "Iso" },
   { id: "multi", label: "Multi" },
   { id: "dispatch", label: "Dispatch" },
+  { id: "cut", label: "Cordon" },
 ];
 
 export function TopBar() {

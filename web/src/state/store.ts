@@ -38,6 +38,7 @@ interface State {
   setSpeed: (sec: number) => void;
   toggleInfo: () => void;
   setIsoBudget: (min: number) => void;
+  setCutBudget: (min: number) => void;
   setPlacing: (p: Placing) => void;
   mapClick: (worldX: number, worldY: number) => void;
   multiUndo: () => void;
@@ -57,6 +58,7 @@ function defaultParams(g: Graph, kd: KDTree, mode: Mode, weight: Weight): SceneP
     source: pick(g, kd, 0.2, 0.22),
     target: pick(g, kd, 0.82, 0.84),
     isoBudgetMin: 8,
+    cutBudgetMin: 4,
     stops: [
       pick(g, kd, 0.2, 0.25),
       pick(g, kd, 0.52, 0.72),
@@ -75,7 +77,7 @@ export const useStore = create<State>((set, get) => {
   const commit = (next: SceneParams, extra: Partial<State> = {}) => {
     const { graph } = get();
     if (!graph) return set({ params: next, ...extra });
-    const isStatic = next.mode === "iso";
+    const isStatic = next.mode === "iso" || next.mode === "cut";
     set({
       params: next,
       scene: buildScene(graph, next),
@@ -98,6 +100,7 @@ export const useStore = create<State>((set, get) => {
       source: 0,
       target: 0,
       isoBudgetMin: 5,
+      cutBudgetMin: 4,
       stops: [],
       units: [],
       jobs: [],
@@ -142,6 +145,9 @@ export const useStore = create<State>((set, get) => {
     setIsoBudget(minutes) {
       commit({ ...get().params, isoBudgetMin: minutes });
     },
+    setCutBudget(minutes) {
+      commit({ ...get().params, cutBudgetMin: minutes });
+    },
     setPlacing: (placing) => set({ placing }),
 
     mapClick(worldX, worldY) {
@@ -156,7 +162,7 @@ export const useStore = create<State>((set, get) => {
           if (node === params.source) return;
           commit({ ...params, target: node }, { nextClick: "start" });
         }
-      } else if (mode === "iso") {
+      } else if (mode === "iso" || mode === "cut") {
         commit({ ...params, source: node });
       } else if (mode === "multi") {
         if (params.stops.length >= 9) return;

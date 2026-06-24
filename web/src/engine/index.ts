@@ -23,6 +23,8 @@ export {
 export { isochrone, type Isochrone } from "./isochrone";
 export { concaveHull, type ConcaveHull } from "./hull";
 export { yenKShortest, type KPath } from "./yen";
+export { MaxFlow, FLOW_INF } from "./maxflow";
+export { containment, type Containment } from "./containment";
 export { bidirectional, reconstructBidir, type BidirResult } from "./bidirectional";
 export {
   multiSourceDijkstra,

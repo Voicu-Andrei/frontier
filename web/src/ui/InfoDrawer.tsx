@@ -17,7 +17,9 @@ type DiagramKind =
   | "multisource"
   | "altroutes"
   | "spur"
-  | "backpointers";
+  | "backpointers"
+  | "flow"
+  | "mincut";
 
 // Shown on EVERY tab — the key thing to understand about the whole app.
 const SHARED: Section = {
@@ -164,6 +166,28 @@ const INFO: Record<Mode, Info> = {
         heading: "HOW — SPUR OFF THE BEST",
         body: "Take the shortest path. Then, at each node along it, force a detour: temporarily ban the edges the known paths already used there and re-route to the destination. Each detour is a candidate; the cheapest unused one becomes the next route. Repeat until you have k.",
         diagram: "spur",
+      },
+    ],
+  },
+  cut: {
+    title: "Containment — min cut",
+    algo: "Max-flow / min-cut (Dinic)",
+    complexity: "O(V² E)",
+    sections: [
+      {
+        heading: "SEAL THE ZONE",
+        body: "Given an area to contain, what's the FEWEST roads to block so nothing inside can escape to the rest of the map? Cutting every road on the perimeter works but is wasteful — the goal is the minimum set.",
+        diagram: "mincut",
+      },
+      {
+        heading: "MAX-FLOW = MIN-CUT",
+        body: "Treat roads as pipes (capacity 1 each). Push as much 'flow' as possible from the zone to the outside. A beautiful theorem says the maximum flow exactly equals the minimum cut — so once flow is maxed, the saturated bottleneck roads ARE the cheapest set to block.",
+        diagram: "flow",
+      },
+      {
+        heading: "WHY IT FINDS CHOKEPOINTS",
+        body: "The cut naturally lands on bottlenecks. On real Munich that means bridges: roads only cross the Isar at a handful of points, so sealing one bank needs just those few cuts — not a wall around the whole zone.",
+        diagram: "mincut",
       },
     ],
   },
@@ -381,6 +405,36 @@ function MiniDiagram({ kind }: { kind: DiagramKind }) {
           <circle cx="120" cy="70" r="5" fill={acc} />
           <circle cx="260" cy="44" r="5" fill={end} />
           <text x="120" y="92" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>ban an edge, re-route</text>
+        </svg>
+      );
+    case "flow":
+      return (
+        <svg viewBox="0 0 300 116" style={box}>
+          <circle cx="34" cy="58" r="6" fill={start} />
+          <circle cx="266" cy="58" r="6" fill={end} />
+          <path d="M40 50 Q110 28 150 44" stroke={acc} strokeWidth="3" fill="none" opacity="0.5" />
+          <path d="M40 66 Q110 88 150 72" stroke={acc} strokeWidth="3" fill="none" opacity="0.5" />
+          <path d="M150 44 L150 72" stroke={w2} strokeWidth="3" />
+          <path d="M150 44 Q210 30 260 52" stroke={acc} strokeWidth="3" fill="none" opacity="0.5" />
+          <path d="M150 72 Q210 92 260 64" stroke={acc} strokeWidth="3" fill="none" opacity="0.5" />
+          <line x1="150" y1="40" x2="150" y2="76" stroke={end} strokeWidth="1.5" strokeDasharray="3 3" />
+          <text x="150" y="100" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>bottleneck = min cut</text>
+          <text x="34" y="40" fill={muted} fontSize="10" textAnchor="middle" fontFamily={mono}>in</text>
+          <text x="266" y="40" fill={muted} fontSize="10" textAnchor="middle" fontFamily={mono}>out</text>
+        </svg>
+      );
+    case "mincut":
+      return (
+        <svg viewBox="0 0 300 116" style={box}>
+          <path d="M70 30 Q150 14 200 40 Q210 80 150 96 Q80 90 64 60 Q60 42 70 30Z" fill={end} opacity="0.12" stroke={end} strokeWidth="1.4" />
+          <circle cx="135" cy="56" r="5" fill={start} />
+          {[[200, 40], [150, 96], [70, 30]].map(([x, y], i) => (
+            <g key={i}>
+              <line x1={x - 5} y1={y - 5} x2={x + 5} y2={y + 5} stroke={end} strokeWidth="2.4" strokeLinecap="round" />
+              <line x1={x + 5} y1={y - 5} x2={x - 5} y2={y + 5} stroke={end} strokeWidth="2.4" strokeLinecap="round" />
+            </g>
+          ))}
+          <text x="150" y="110" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>block the few key roads</text>
         </svg>
       );
     case "backpointers":

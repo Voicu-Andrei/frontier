@@ -61,6 +61,13 @@ export function ModeIcon({ mode }: { mode: Mode }) {
           <rect x="9" y="9" width="4" height="4" rx="1" fill="currentColor" />
         </svg>
       );
+    case "cut":
+      return (
+        <svg {...S}>
+          <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.4" fill="none" />
+          <line x1="2.5" y1="2.5" x2="13.5" y2="13.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+      );
   }
 }
 

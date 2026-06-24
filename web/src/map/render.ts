@@ -91,8 +91,10 @@ export function renderOverlay(
 
   if (scene.iso) {
     drawIso(ctx, g, palette, vp, scene.iso, progress);
+  } else if (scene.cut) {
+    drawCut(ctx, palette, vp, scene.cut);
   } else if (paneObj) {
-    drawFrontier(ctx, palette, vp, paneObj.frontier, paneObj.frontierCount, progress, "warm");
+    drawFrontier(ctx, palette, vp, paneObj.frontier, paneObj.frontierCount, progress, "warm", paneObj.frontierUnit);
     if (paneObj.frontierB) {
       drawFrontier(ctx, palette, vp, paneObj.frontierB, paneObj.frontierBCount ?? 0, progress, "cool");
     }
@@ -101,13 +103,61 @@ export function renderOverlay(
   if (paneObj) {
     for (const route of paneObj.routes) {
       if (progress < route.revealAt) continue;
-      const span = 1 - route.revealAt;
-      const local = span <= 0 ? 1 : (progress - route.revealAt) / span;
+      const span = route.revealSpan ?? 1 - route.revealAt;
+      const local = span <= 0 ? 1 : Math.min(1, (progress - route.revealAt) / span);
       drawRoute(ctx, palette, vp, route.poly, easeOut(local), route.rank);
     }
   }
 
   renderMarkers(ctx, palette, vp, scene.markers, timeMs, progress);
+}
+
+/** Distinct colours for dispatch territories, cycled by unit index. */
+function unitColors(palette: Palette): string[] {
+  return [palette.accent, palette.frontierWave1, palette.algoB, palette.start, palette.frontierWave2, palette.end];
+}
+
+function drawCut(ctx: CanvasRenderingContext2D, palette: Palette, vp: Viewport, cut: NonNullable<Scene["cut"]>): void {
+  // sealed-in region
+  if (cut.hullRings.length) {
+    ctx.beginPath();
+    for (const ring of cut.hullRings) {
+      ctx.moveTo(vp.toScreenX(ring[0]), vp.toScreenY(ring[1]));
+      for (let i = 2; i < ring.length; i += 2) ctx.lineTo(vp.toScreenX(ring[i]), vp.toScreenY(ring[i + 1]));
+      ctx.closePath();
+    }
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = palette.end;
+    ctx.fill("evenodd");
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = palette.end;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  // the roads to block — bold danger lines with an X
+  for (const seg of cut.cutLines) {
+    const x1 = vp.toScreenX(seg[0]);
+    const y1 = vp.toScreenY(seg[1]);
+    const x2 = vp.toScreenX(seg[2]);
+    const y2 = vp.toScreenY(seg[3]);
+    ctx.strokeStyle = palette.end;
+    ctx.lineWidth = 3.4;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    const mx = (x1 + x2) / 2;
+    const my = (y1 + y2) / 2;
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(mx - 3, my - 3);
+    ctx.lineTo(mx + 3, my + 3);
+    ctx.moveTo(mx + 3, my - 3);
+    ctx.lineTo(mx - 3, my + 3);
+    ctx.stroke();
+  }
 }
 
 function drawFrontier(
@@ -118,6 +168,7 @@ function drawFrontier(
   count: number,
   progress: number,
   variant: "warm" | "cool",
+  units?: Int32Array,
 ): void {
   const k = Math.floor(progress * count);
   if (k <= 0) return;
@@ -126,11 +177,16 @@ function drawFrontier(
   const hotC = variant === "warm" ? palette.frontierWave2 : palette.routeB;
   const warmC = variant === "warm" ? palette.frontierWave1 : palette.algoB;
   const settleC = palette.frontierSettle;
+  const uColors = units ? unitColors(palette) : null;
   for (let i = 0; i < k; i++) {
     const d = k - i;
     let color: string;
     let lw: number;
-    if (d < hot) {
+    if (uColors) {
+      // dispatch: colour by owning unit (territory), brighten the leading edge
+      color = uColors[((units![i] % uColors.length) + uColors.length) % uColors.length];
+      lw = d < hot ? 2.1 : 1.1;
+    } else if (d < hot) {
       color = hotC;
       lw = 2.2;
     } else if (d < warm) {
