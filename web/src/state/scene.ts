@@ -3,6 +3,7 @@ import { dijkstra } from "../engine/dijkstra";
 import { astar } from "../engine/astar";
 import { reconstructPath, pathPolyline, pathStats } from "../engine/path";
 import { isochrone } from "../engine/isochrone";
+import { concaveHull } from "../engine/hull";
 import { bidirectional, reconstructBidir } from "../engine/bidirectional";
 import { multiSourceDijkstra, reconstructToSource } from "../engine/multisource";
 import { multiStopRoute } from "../engine/multistop";
@@ -43,6 +44,8 @@ export interface Pane {
   frontierUnit?: Int32Array;
   /** Progress fraction over which the frontier finishes growing (default 1). */
   frontierSpan?: number;
+  /** Concave hull of everything explored — shaded to show how much area was scanned. */
+  exploredHull?: Float64Array[];
   /** Polylines to reveal with progress (route legs, dispatch assignments). */
   routes: RouteLine[];
 }
@@ -244,6 +247,12 @@ function buildBidir(g: Graph, p: SceneParams): Scene {
   };
 }
 
+function exploredHull(g: Graph, r: SearchResult): Float64Array[] {
+  const pts: [number, number][] = [];
+  for (let i = 0; i < r.settledCount; i++) pts.push([g.mx[r.order[i]], g.my[r.order[i]]]);
+  return pts.length >= 3 ? concaveHull(pts, 0.93).rings : [];
+}
+
 function buildRace(g: Graph, p: SceneParams): Scene {
   const d = timed(() => dijkstra(g, p.source, { weight: p.weight, target: p.target }));
   const a = timed(() => astar(g, p.source, p.target, { weight: p.weight }));
@@ -251,12 +260,13 @@ function buildRace(g: Graph, p: SceneParams): Scene {
   const aPath = reconstructPath(a.value, p.source, p.target);
   const speedup = a.value.settledCount > 0 ? d.value.settledCount / a.value.settledCount : 1;
   const stats = aPath ? pathStats(g, aPath) : null;
+  const dPane = pane(g, d.value, "DIJKSTRA", "a", dPath ? [pathPolyline(g, dPath)] : []);
+  const aPane = pane(g, a.value, "A★", "b", aPath ? [pathPolyline(g, aPath)] : []);
+  dPane.exploredHull = exploredHull(g, d.value);
+  aPane.exploredHull = exploredHull(g, a.value);
   return {
     mode: "race",
-    panes: [
-      pane(g, d.value, "DIJKSTRA", "a", dPath ? [pathPolyline(g, dPath)] : []),
-      pane(g, a.value, "A★", "b", aPath ? [pathPolyline(g, aPath)] : []),
-    ],
+    panes: [dPane, aPane],
     markers: [marker(g, p.source, "start"), marker(g, p.target, "end")],
     totalSteps: Math.max(d.value.settledCount, a.value.settledCount),
     algoLabel: "DIJKSTRA × A★",

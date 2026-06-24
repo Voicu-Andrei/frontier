@@ -19,14 +19,23 @@ type DiagramKind =
   | "spur"
   | "backpointers"
   | "flow"
-  | "mincut";
+  | "mincut"
+  | "pizza"
+  | "graph";
 
-// Shown on EVERY tab — the key thing to understand about the whole app.
-const SHARED: Section = {
-  heading: "SCAN FIRST, THEN REPLAY",
-  body: "Important: the search finishes in an instant. As it runs we record the order nodes were settled and a 'came-from' pointer on each. The animation you watch is a REPLAY of that recording — which is why the route, the meeting point, or a unit's assignment can be shown: they were already discovered when the scan completed. Nothing aims ahead of time; the path is rebuilt by walking the came-from pointers back from the destination.",
-  diagram: "backpointers",
-};
+// Shown on EVERY tab — the things to understand about the whole app.
+const SHARED_SECTIONS: Section[] = [
+  {
+    heading: "WHAT'S A NODE, WHAT'S AN EDGE",
+    body: "The city is a GRAPH. Every junction where roads meet is a node (vertex); every stretch of road between two junctions is an edge, carrying a weight — its length, or how long it takes to drive. The graph is stored as an adjacency list (each node keeps a list of its outgoing edges), so the search can ask 'what's next to here?' instantly. 2,240 nodes and ~9,000 edges in the demo graph; hundreds of thousands in real Munich.",
+    diagram: "graph",
+  },
+  {
+    heading: "SCAN FIRST, THEN REPLAY",
+    body: "The search finishes in an instant. As it runs it 'scans' nodes — repeatedly taking the cheapest-so-far node, marking it settled, and relaxing its neighbours — recording the order it settled them and a 'came-from' pointer on each. The animation you watch is a REPLAY of that recording, which is why the route, meeting point, or assignment can be shown: they were already found. The path is rebuilt by walking the came-from pointers back from the destination.",
+    diagram: "backpointers",
+  },
+];
 
 interface Section {
   heading: string;
@@ -80,8 +89,13 @@ const INFO: Record<Mode, Info> = {
         diagram: "tunnel",
       },
       {
+        heading: "THE TWO-PIZZA STORY",
+        body: "A guy orders an 18-inch pizza; the shop's out, so they bring two 12-inch ones 'to make up for it.' But two 12s are LESS pizza than one 18: 2 × π × 6² ≈ 226 in², versus π × 9² ≈ 254 in². Bidirectional search is the same trick. One search must cover a circle of radius d (area ∝ d²). Two searches each cover radius d⁄2, and two half-radius circles total HALF the area — so together they settle about half as many nodes.",
+        diagram: "pizza",
+      },
+      {
         heading: "WHY IT'S FASTER",
-        body: "A single search settles one big disc of radius d. Two searches settle two discs of radius d⁄2 — together far smaller in area, so far fewer nodes are touched.",
+        body: "Same idea, stated plainly: work grows with the AREA explored, and two small discs beat one big disc. The catch is making them meet correctly — hence the stopping rule below.",
         diagram: "balls",
       },
       {
@@ -159,12 +173,17 @@ const INFO: Record<Mode, Info> = {
     sections: [
       {
         heading: "MORE THAN ONE GOOD WAY",
-        body: "There's rarely a single sensible route — usually a few are within a minute or two. Alt offers genuinely distinct options so you can pick by preference, avoid a road, or keep a backup.",
+        body: "Think of a regular commute: the motorway is fastest, but if there's a crash you'd take the river road, and on a nice day maybe the scenic one. They're all 'good' — within a minute or two of each other. A router that only ever gives THE shortest path is brittle; people want options to choose from or fall back on.",
+        diagram: "altroutes",
+      },
+      {
+        heading: "WHY NOT JUST 'THE 3 SHORTEST'?",
+        body: "The mathematically 3-shortest paths are almost always the same road with one block swapped — useless as 'alternatives'. So we don't ask for the 3 shortest; we ask for 3 that are GENUINELY different. That's the distinction between Yen's exact k-shortest-paths (precise but near-identical) and the penalty method (distinct, what consumer maps show). Both are implemented; Alt shows the penalty method.",
         diagram: "altroutes",
       },
       {
         heading: "HOW — MAKE BUSY ROADS COSTLY",
-        body: "Find the best route. Then multiply the cost of every road it used and search again — now the cheapest path is forced to detour around them. Repeat for each alternative. (The exact k-shortest-paths algorithm, Yen's, is also implemented; the penalty method just gives more visibly different routes, like consumer maps do.)",
+        body: "Find the best route. Then pretend every road it used got more expensive (multiply its weight), and search again — the cheapest path is now FORCED to detour around the first one. Repeat for each alternative. It's like telling the router 'fine, but not that way this time.' Costs shown are the true travel times, not the inflated ones used to push it off course.",
         diagram: "spur",
       },
     ],
@@ -437,6 +456,30 @@ function MiniDiagram({ kind }: { kind: DiagramKind }) {
           <text x="150" y="110" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>block the few key roads</text>
         </svg>
       );
+    case "pizza":
+      return (
+        <svg viewBox="0 0 300 116" style={box}>
+          <circle cx="68" cy="56" r="40" fill={w2} opacity="0.2" stroke={w2} strokeWidth="1.6" />
+          <text x="68" y="60" fill={muted} fontSize="11" textAnchor="middle" fontFamily={mono}>18″</text>
+          <text x="68" y="108" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>254 in²</text>
+          <text x="150" y="60" fill={muted} fontSize="14" textAnchor="middle">{">"}</text>
+          <circle cx="206" cy="44" r="27" fill={acc} opacity="0.2" stroke={acc} strokeWidth="1.5" />
+          <circle cx="244" cy="74" r="27" fill={acc} opacity="0.2" stroke={acc} strokeWidth="1.5" />
+          <text x="225" y="108" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>two 12″ = 226 in²</text>
+        </svg>
+      );
+    case "graph":
+      return (
+        <svg viewBox="0 0 300 116" style={box}>
+          {[[60, 40, 150, 30], [150, 30, 230, 56], [60, 40, 110, 86], [110, 86, 200, 92], [150, 30, 110, 86], [200, 92, 230, 56]].map(([x1, y1, x2, y2], i) => (
+            <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={muted} strokeWidth="1.5" />
+          ))}
+          {[[60, 40], [150, 30], [230, 56], [110, 86], [200, 92]].map(([x, y], i) => (
+            <circle key={i} cx={x} cy={y} r="7" fill="var(--panel-solid)" stroke={i === 0 ? acc : muted} strokeWidth="1.8" />
+          ))}
+          <text x="150" y="112" fill={muted} fontSize="9" textAnchor="middle" fontFamily={mono}>nodes = junctions · edges = roads</text>
+        </svg>
+      );
     case "backpointers":
       return (
         <svg viewBox="0 0 300 116" style={box}>
@@ -481,7 +524,7 @@ export function InfoDrawer() {
         </button>
       </div>
 
-      {[...info.sections, SHARED].map((s, i) => (
+      {[...info.sections, ...SHARED_SECTIONS].map((s, i) => (
         <div key={i} className="info-section">
           <div className="cap" style={{ marginBottom: 8 }}>{s.heading}</div>
           <div className="info-diagram">

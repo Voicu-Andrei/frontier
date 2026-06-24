@@ -106,6 +106,21 @@ export function renderOverlay(
   } else if (scene.cut) {
     drawCut(ctx, palette, vp, scene.cut);
   } else if (paneObj) {
+    // shade the TOTAL area this algorithm scanned — makes "Dijkstra explored a big
+    // disc, A* a narrow beam" obvious at a glance
+    if (paneObj.exploredHull?.length) {
+      const col = paneObj.colorRole === "a" ? palette.algoA : palette.algoB;
+      ctx.beginPath();
+      for (const ring of paneObj.exploredHull) {
+        ctx.moveTo(vp.toScreenX(ring[0]), vp.toScreenY(ring[1]));
+        for (let i = 2; i < ring.length; i += 2) ctx.lineTo(vp.toScreenX(ring[i]), vp.toScreenY(ring[i + 1]));
+        ctx.closePath();
+      }
+      ctx.globalAlpha = 0.13;
+      ctx.fillStyle = col;
+      ctx.fill("evenodd");
+      ctx.globalAlpha = 1;
+    }
     // frontier may finish growing before the end of the bar (bidir reserves the
     // tail for drawing the route), so remap progress into its growth window
     const fspan = paneObj.frontierSpan ?? 1;
