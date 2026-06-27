@@ -2,11 +2,19 @@ import type { Graph, SearchOptions, SearchResult } from "./types";
 import { weightArray } from "./graph";
 import { MinHeap } from "./heap";
 
-/** Fastest free-flow speed in the dataset, m/s — used for the time heuristic. */
+const _maxSpeedCache = new WeakMap<Graph, number>();
+
+/** Fastest free-flow speed in the dataset, m/s — cached per graph instance. */
 function maxSpeedMps(g: Graph): number {
-  const speeds = Object.values(g.meta.speeds_kmh);
-  const kmh = speeds.length ? Math.max(...speeds) : 100;
-  return (kmh * 1000) / 3600;
+  let v = _maxSpeedCache.get(g);
+  if (v === undefined) {
+    const speeds = Object.values(g.meta.speeds_kmh);
+    let kmh = 100;
+    for (const s of speeds) if (s > kmh) kmh = s;
+    v = (kmh * 1000) / 3600;
+    _maxSpeedCache.set(g, v);
+  }
+  return v;
 }
 
 /**

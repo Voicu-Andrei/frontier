@@ -22,12 +22,15 @@ export interface MultiStopRoute {
  */
 export function multiStopRoute(g: Graph, stops: number[], weight: Weight = "time"): MultiStopRoute {
   const k = stops.length;
-  // all-pairs costs via the engine (A* between each pair of stops)
+  // all-pairs costs via A*; cache full results so leg paths reuse the same search
   const cost: number[][] = Array.from({ length: k }, () => new Array(k).fill(Infinity));
+  const searchCache: (SearchResult | null)[][] = Array.from({ length: k }, () => new Array(k).fill(null));
   for (let i = 0; i < k; i++) {
     for (let j = 0; j < k; j++) {
       if (i === j) continue;
-      cost[i][j] = astar(g, stops[i], stops[j], { weight }).dist[stops[j]];
+      const r = astar(g, stops[i], stops[j], { weight });
+      cost[i][j] = r.dist[stops[j]];
+      searchCache[i][j] = r;
     }
   }
 
@@ -49,7 +52,7 @@ export function multiStopRoute(g: Graph, stops: number[], weight: Weight = "time
     visited[best] = true;
   }
 
-  // stitch real paths between consecutive stops
+  // stitch real paths between consecutive stops, reusing the cached A* results
   const legs: Path[] = [];
   const legResults: SearchResult[] = [];
   const poly: number[] = [];
@@ -57,10 +60,10 @@ export function multiStopRoute(g: Graph, stops: number[], weight: Weight = "time
   let distance_m = 0;
   let time_s = 0;
   for (let i = 0; i < order.length - 1; i++) {
-    const s = stops[order[i]];
-    const tgt = stops[order[i + 1]];
-    const r = astar(g, s, tgt, { weight });
-    const path = reconstructPath(r, s, tgt);
+    const si = order[i];
+    const sj = order[i + 1];
+    const r = searchCache[si][sj]!;
+    const path = reconstructPath(r, stops[si], stops[sj]);
     if (!path) continue;
     legs.push(path);
     legResults.push(r);

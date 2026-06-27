@@ -27,7 +27,7 @@ type DiagramKind =
 const SHARED_SECTIONS: Section[] = [
   {
     heading: "WHAT'S A NODE, WHAT'S AN EDGE",
-    body: "The city is a GRAPH. Every junction where roads meet is a node (vertex); every stretch of road between two junctions is an edge, carrying a weight — its length, or how long it takes to drive. The graph is stored as an adjacency list (each node keeps a list of its outgoing edges), so the search can ask 'what's next to here?' instantly. 2,240 nodes and ~9,000 edges in the demo graph; hundreds of thousands in real Munich.",
+    body: "The city is a GRAPH. Every junction where roads meet is a node (vertex); every stretch of road between two junctions is an edge, carrying a weight — its length, or how long it takes to drive. The graph is stored as an adjacency list (each node keeps a list of its outgoing edges), so the search can ask 'what's next to here?' instantly. 2,240 nodes and ~9,000 edges in the demo graph; hundreds of thousands in real Munich. Storing every possible node-pair in a matrix would need 300,000 × 300,000 = 90 billion entries. The adjacency list stores only the ~1.5 million edges that actually exist — a 60,000× saving.",
     diagram: "graph",
   },
   {
@@ -58,7 +58,7 @@ const INFO: Record<Mode, Info> = {
     sections: [
       {
         heading: "THE IDEA — A COMPASS",
-        body: "Dijkstra explores in every direction equally. A* adds a compass: at each step it prefers nodes that look closer to the destination, so it heads roughly straight there instead of wandering.",
+        body: "Dijkstra is a floodlight — it illuminates the whole map equally in every direction. A* is a flashlight: it adds a compass that prefers nodes closer to the destination, heading roughly straight there instead of wandering. Both find the exact same route; A* just wastes far less light getting there.",
         diagram: "compass",
       },
       {
@@ -85,7 +85,7 @@ const INFO: Record<Mode, Info> = {
     sections: [
       {
         heading: "TWO DIGGERS, ONE TUNNEL",
-        body: "Like digging a tunnel from both ends at once: one search grows from the start, another from the destination (over the reversed graph). They only have to reach halfway before they meet.",
+        body: "Like digging a tunnel from both ends at once: one search grows from the start, another from the destination (over the reversed graph). The Swiss dug the Gotthard Base Tunnel (57 km — the world's longest rail tunnel) exactly this way. The two teams met in the middle just 8 cm off after years of drilling. Our stopping rule μ guarantees zero error.",
         diagram: "tunnel",
       },
       {
@@ -129,12 +129,12 @@ const INFO: Record<Mode, Info> = {
     sections: [
       {
         heading: "INK ON A MAP",
-        body: "“How far can I get in N minutes?” Imagine ink spreading from the origin, but flowing faster along fast roads. Run Dijkstra with a time budget and no target — every street it reaches in time is reachable.",
+        body: “”How far can I get in N minutes?” Imagine ink spreading from the origin, but flowing faster along fast roads. Run Dijkstra with a time budget and no target — every street it reaches in time is reachable. Urban planners call this the '15-minute city': a neighbourhood where everything — shops, parks, schools — is reachable in 15 minutes on foot. Set the budget here to 15 minutes and click any point: the blob on screen IS that neighbourhood's 15-minute city.”,
         diagram: "ink",
       },
       {
         heading: "WHY IT'S NOT A CIRCLE",
-        body: "Speed matters: in 10 minutes you travel far along a motorway but only a few blocks through side streets. So the reachable shape stretches along arterials and pulls in elsewhere — never a clean circle.",
+        body: "Speed matters: in 10 minutes you travel far along a motorway but only a few blocks through side streets. So the reachable shape stretches along arterials and pulls in elsewhere — never a clean circle. Every real-estate app draws a circular '10-minute walk zone' around a listing. That circle is a lie: the real zone can't cross a river without a bridge or cut through a park without a path.",
         diagram: "bands",
       },
       {
@@ -156,7 +156,7 @@ const INFO: Record<Mode, Info> = {
       },
       {
         heading: "WHY IT'S HARD",
-        body: "The number of possible orders explodes: 10 stops already have ~180,000 distinct tours, 15 stops have billions. No known algorithm solves it quickly for large n — it's NP-hard.",
+        body: "The number of possible orders explodes: 10 stops → ~180,000 distinct tours, 15 stops → ~44 billion, 20 stops → ~60 quadrillion. At a billion route-evaluations per second, 20 stops would take two years of computing. No known algorithm avoids this explosion for large n — it's NP-hard.",
         diagram: "factorial",
       },
       {
@@ -173,7 +173,7 @@ const INFO: Record<Mode, Info> = {
     sections: [
       {
         heading: "MORE THAN ONE GOOD WAY",
-        body: "Think of a regular commute: the motorway is fastest, but if there's a crash you'd take the river road, and on a nice day maybe the scenic one. They're all 'good' — within a minute or two of each other. A router that only ever gives THE shortest path is brittle; people want options to choose from or fall back on.",
+        body: "Think of a regular commute: the motorway is fastest, but if there's a crash you'd take the river road, and on a nice day maybe the scenic one. They're all 'good' — within a minute or two of each other. A router that only ever gives THE shortest path is brittle. Open Google Maps and ask for directions — it always shows three options. That's not a coincidence: it's the penalty method, running on your phone right now, every time you check navigation.",
         diagram: "altroutes",
       },
       {
@@ -195,7 +195,7 @@ const INFO: Record<Mode, Info> = {
     sections: [
       {
         heading: "SEAL THE ZONE",
-        body: "Given an area to contain, what's the FEWEST roads to block so nothing inside can escape to the rest of the map? Cutting every road on the perimeter works but is wasteful — the goal is the minimum set.",
+        body: "Given an area to contain, what's the FEWEST roads to block so nothing inside can escape? Cutting every road on the perimeter works but is wasteful — the goal is the minimum set. Think of a medieval city: walls everywhere, but only a handful of gates. Sealing the city means closing the gates, not rebuilding the walls. The min-cut finds exactly those gates automatically.",
         diagram: "mincut",
       },
       {
@@ -217,7 +217,7 @@ const INFO: Record<Mode, Info> = {
     sections: [
       {
         heading: "WHICH STATION IS CLOSEST?",
-        body: "Several units are on the map; every incoming call should go to whichever can reach it first by road (not by straight line). Think fire stations carving up a city into response zones.",
+        body: "Several units are on the map; every incoming call should go to whichever can reach it first by road (not by straight line). Think fire stations carving up a city into response zones — or Amazon assigning every order to the nearest of its regional warehouses. The result is the road-network equivalent of a Voronoi diagram: each unit 'owns' the region it reaches first.",
         diagram: "stations",
       },
       {
