@@ -69,6 +69,17 @@ function restrictedShortestPath(
 
 const sameNodes = (a: number[], b: number[]) => a.length === b.length && a.every((v, i) => v === b[i]);
 
+/** Insert into a cost-sorted array using binary search — O(log k) comparisons instead of O(k log k) sort. */
+function insertSorted(arr: KPath[], item: KPath): void {
+  let lo = 0, hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (arr[mid].cost <= item.cost) lo = mid + 1;
+    else hi = mid;
+  }
+  arr.splice(lo, 0, item);
+}
+
 /**
  * Alternative routes via the PENALTY method: find the shortest path, multiply the
  * weight of every road it used, then search again — the next route is forced to
@@ -135,11 +146,10 @@ export function yenKShortest(g: Graph, s: number, t: number, K: number, weight: 
       const candidate: KPath = { nodes, edges, cost };
 
       if (!A.some((p) => sameNodes(p.nodes, nodes)) && !B.some((p) => sameNodes(p.nodes, nodes))) {
-        B.push(candidate);
+        insertSorted(B, candidate);
       }
     }
     if (B.length === 0) break;
-    B.sort((a, b) => a.cost - b.cost);
     A.push(B.shift()!);
   }
   return A;

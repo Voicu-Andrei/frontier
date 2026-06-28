@@ -55,18 +55,46 @@ export class MaxFlow {
     return this.level[t] >= 0;
   }
 
-  private dfs(u: number, t: number, f: number): number {
-    if (u === t) return f;
-    for (; this.iter[u] !== -1; this.iter[u] = this.nxt[this.iter[u]]) {
-      const e = this.iter[u];
-      const v = this.to[e];
-      if (this.cap[e] > 0 && this.level[v] === this.level[u] + 1) {
-        const d = this.dfs(v, t, Math.min(f, this.cap[e]));
-        if (d > 0) {
-          this.cap[e] -= d;
-          this.cap[e ^ 1] += d;
-          return d;
+  private dfs(s: number, t: number, pushed: number): number {
+    if (s === t) return pushed;
+    // Iterative Dinic DFS — avoids call-stack overflow on long augmenting paths.
+    // pathNodes/pathEdges track the current route; we augment in-place when we
+    // reach t, and advance each node's current-pointer (iter) only on backtrack.
+    const pathNodes: number[] = [s];
+    const pathEdges: number[] = [];
+    const pathFlow: number[] = [pushed];
+
+    outer: while (pathNodes.length > 0) {
+      const u = pathNodes[pathNodes.length - 1];
+      const f = pathFlow[pathFlow.length - 1];
+
+      if (u === t) {
+        for (const e of pathEdges) {
+          this.cap[e] -= f;
+          this.cap[e ^ 1] += f;
         }
+        return f;
+      }
+
+      while (this.iter[u] !== -1) {
+        const e = this.iter[u];
+        const v = this.to[e];
+        if (this.cap[e] > 0 && this.level[v] === this.level[u] + 1) {
+          pathNodes.push(v);
+          pathEdges.push(e);
+          pathFlow.push(Math.min(f, this.cap[e]));
+          continue outer;
+        }
+        this.iter[u] = this.nxt[this.iter[u]];
+      }
+
+      // Dead end — backtrack and advance the parent's current-pointer past the
+      // edge that brought us here so we don't revisit it.
+      pathNodes.pop();
+      pathFlow.pop();
+      if (pathEdges.length > 0) {
+        const e = pathEdges.pop()!;
+        this.iter[pathNodes[pathNodes.length - 1]] = this.nxt[e];
       }
     }
     return 0;

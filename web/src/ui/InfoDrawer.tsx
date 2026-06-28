@@ -129,7 +129,7 @@ const INFO: Record<Mode, Info> = {
     sections: [
       {
         heading: "INK ON A MAP",
-        body: “”How far can I get in N minutes?” Imagine ink spreading from the origin, but flowing faster along fast roads. Run Dijkstra with a time budget and no target — every street it reaches in time is reachable. Urban planners call this the '15-minute city': a neighbourhood where everything — shops, parks, schools — is reachable in 15 minutes on foot. Set the budget here to 15 minutes and click any point: the blob on screen IS that neighbourhood's 15-minute city.”,
+        body: “'How far can I get in N minutes?' Imagine ink spreading from the origin, but flowing faster along fast roads. Run Dijkstra with a time budget and no target — every street it reaches in time is reachable. Urban planners call this the '15-minute city': a neighbourhood where everything — shops, parks, schools — is reachable in 15 minutes on foot. Set the budget here to 15 minutes and click any point: the blob on screen IS that neighbourhood's 15-minute city.”,
         diagram: "ink",
       },
       {
